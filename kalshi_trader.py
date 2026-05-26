@@ -318,6 +318,23 @@ def _public_headers() -> dict:
     """Headers for unauthenticated public Kalshi reads (markets endpoint)."""
     return {"Content-Type": "application/json", "Accept": "application/json"}
 
+def fetch_kalshi_balance() -> float:
+    """Fetch real account balance from Kalshi API."""
+    try:
+        path = "/trade-api/v2/portfolio/balance"
+        headers = _rsa_sign("GET", path)
+        req = urllib.request.Request(CFG.KALSHI_BASE + "/portfolio/balance", headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+        # balance is in cents
+        bal = data.get("balance", 0)
+        return float(bal) / 100.0
+    except Exception as e:
+        log.debug("Balance fetch failed: %s", e)
+        return CFG.TOTAL_CAPITAL
+
+
+
 
 # -----------------------------------------------------------------------------
 # DATA MODELS
@@ -911,7 +928,18 @@ def run():
 
     risk    = RiskManager()
     cycle   = 0
-    capital = CFG.TOTAL_CAPITAL
+    # Fetch real Kalshi balance
+    real_balance = fetch_kalshi_balance()
+    if real_balance > 0:
+        capital = real_balance
+        log.info("Real Kalshi balance: $%.2f", capital)
+    try:
+        _shared["capital"] = capital
+    except Exception:
+        pass
+    else:
+        capital = CFG.TOTAL_CAPITAL
+        log.info("Using config capital: $%.2f", capital)
 
     while True:
         cycle += 1
@@ -1070,7 +1098,7 @@ if __name__ == "__main__":
     import threading
     import http.server as _hs
 
-    _shared = {"risk": None, "cycle": 0, "started_at": time.time()}
+    _shared = {"risk": None, "cycle": 0, "started_at": time.time(), "capital": 0.0}
 
     class HealthHandler(_hs.BaseHTTPRequestHandler):
         def log_message(self, *args, **kwargs):
@@ -1230,7 +1258,7 @@ if __name__ == "__main__":
                             "max_open":         CFG.MAX_OPEN,
                             "min_position_usd": CFG.MIN_POSITION_USD,
                             "max_position_usd": CFG.MAX_POSITION_USD,
-                            "total_capital":    CFG.TOTAL_CAPITAL,
+                            "total_capital":    _shared.get("capital", CFG.TOTAL_CAPITAL),
                             "max_daily_loss":   CFG.MAX_DAILY_LOSS,
                             "max_ttr_days":              CFG.MAX_TTR_DAYS,
                             "liquid_volume_min":         CFG.LIQUID_VOLUME_MIN,
