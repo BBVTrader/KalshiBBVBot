@@ -670,6 +670,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(status, "application/json", body)
             return
 
+        if path == "/api/balance":
+            try:
+                headers = _sign_request("GET", "/trade-api/v2/portfolio/balance")
+                req = urllib.request.Request(f"{KALSHI_BASE}/portfolio/balance", headers=headers)
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    data = json.loads(r.read())
+                bal = data.get("balance", 0) / 100.0
+                self._send(200, "application/json", json.dumps({"balance": bal}).encode())
+            except Exception as e:
+                self._send(200, "application/json", json.dumps({"balance": 0, "error": str(e)}).encode())
+            return
+
         if path == "/api/status":
             data = build_portfolio_status()
             self._send(200, "application/json", json.dumps(data).encode())
