@@ -275,7 +275,7 @@ def _rsa_sign(method: str, path: str) -> dict:
         import os as _os
         _key_file = "/etc/secrets/kalshi_key.pem"
         if _os.path.exists(_key_file):
-            raw_key = open(_key_file).read().replace('\\n', '\n')
+            raw_key = open(_key_file).read().replace('\\n', chr(10))
             pem_bytes = raw_key.encode()
         else:
             raw = CFG.API_SECRET
@@ -307,7 +307,7 @@ def _rsa_sign(method: str, path: str) -> dict:
         import os as _os
         _key_file = "/etc/secrets/kalshi_key.pem"
         if _os.path.exists(_key_file):
-            raw_key = open(_key_file).read().replace('\\n', '\n')
+            raw_key = open(_key_file).read().replace('\\n', chr(10))
             pem_bytes = raw_key.encode()
         else:
             raw = CFG.API_SECRET
@@ -343,7 +343,7 @@ def _rsa_sign(method: str, path: str) -> dict:
         import os as _os
         _key_file = "/etc/secrets/kalshi_key.pem"
         if _os.path.exists(_key_file):
-            raw_key = open(_key_file).read().replace('\\n', '\n')
+            raw_key = open(_key_file).read().replace('\\n', chr(10))
             pem_bytes = raw_key.encode()
         else:
             raw = CFG.API_SECRET.replace("\n", "
