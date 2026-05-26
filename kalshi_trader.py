@@ -170,7 +170,7 @@ ENABLE_THIN_EXECUTION = False  # If False, THIN signals are routed but skipped
 
 @dataclass
 class Config:
-    PAPER_TRADE: bool = True
+    PAPER_TRADE: bool = os.getenv("PAPER_TRADE","True").lower() not in ("false","0","no")
 
     API_KEY:    str = os.getenv("KALSHI_API_KEY", "")
     API_SECRET: str = os.getenv("KALSHI_API_SECRET", "")
