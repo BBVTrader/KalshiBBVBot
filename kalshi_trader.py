@@ -286,7 +286,7 @@ def _rsa_sign(method: str, path: str) -> dict:
             msg.encode(),
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.DIGEST_LENGTH
+                salt_length=32
             ),
             hashes.SHA256()
         )
