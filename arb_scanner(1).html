@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARB SCANNER · KALSHI × POLYMARKET</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #080a0f;
+  --bg2:     #0c0f17;
+  --panel:   #0f1420;
+  --border:  #1a2035;
+  --bd2:     #243050;
+  --text:    #c8d4e8;
+  --muted:   #3d5070;
+  --green:   #00f5a0;
+  --red:     #ff3060;
+  --amber:   #ffb020;
+  --blue:    #3080ff;
+  --purple:  #a060ff;
+  --mono:    'Space Mono', monospace;
+  --sans:    'Syne', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:13px}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(48,128,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(48,128,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%, rgba(48,128,255,.08), transparent);
+  pointer-events:none;z-index:0;
+}
+.hdr{
+  position:sticky;top:0;z-index:100;
+  background:rgba(8,10,15,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+}
+.logo{
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:3px;color:var(--blue);
+  display:flex;align-items:center;gap:12px;
+}
+.logo-x{color:var(--muted)}
+.logo-poly{color:var(--purple)}
+.hdr-r{display:flex;align-items:center;gap:16px}
+.status-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--amber);
+  animation:pulse 2s ease-in-out infinite;
+}
+.status-dot.live{background:var(--green)}
+.status-dot.err{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.status-txt{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted)}
+#clk{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px}
+.refresh-btn{
+  font-family:var(--mono);font-size:9px;letter-spacing:1.5px;
+  background:transparent;border:1px solid var(--bd2);
+  color:var(--blue);padding:6px 14px;cursor:pointer;
+  transition:.15s all;
+}
+.refresh-btn:hover{background:rgba(48,128,255,.1);border-color:var(--blue)}
+.main{position:relative;z-index:1;padding:24px 28px;display:flex;flex-direction:column;gap:20px}
+.statbar{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.stat{background:var(--panel);border:1px solid var(--border);padding:14px 16px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;}
+.stat.g::after{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.stat.r::after{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+.stat.b::after{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+.stat.a::after{background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+.stat.p::after{background:linear-gradient(90deg,transparent,var(--purple),transparent)}
+.stat-label{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
+.stat-val{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1}
+.stat-val.green{color:var(--green)}
+.stat-val.red{color:var(--red)}
+.stat-val.blue{color:var(--blue)}
+.stat-val.amber{color:var(--amber)}
+.stat-val.purple{color:var(--purple)}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.sec{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.sec-title{font-family:var(--mono);font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--blue);}
+.sec-meta{font-family:var(--mono);font-size:8px;color:var(--muted)}
+.tbl-wrap{background:var(--panel);border:1px solid var(--border);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--border)}
+th{font-family:var(--mono);font-size:7px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 16px;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s background}
+tbody tr:hover{background:rgba(48,128,255,.04)}
+td{padding:11px 16px;vertical-align:middle;white-space:nowrap}
+.mkt-title{font-size:12px;font-weight:600;color:var(--text);max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.mkt-sub{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px}
+.price-k{font-family:var(--mono);font-size:11px;color:var(--blue)}
+.price-p{font-family:var(--mono);font-size:11px;color:var(--purple)}
+.gap-badge{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:2px;}
+.gap-high{background:rgba(0,245,160,.12);color:var(--green);border:1px solid rgba(0,245,160,.25)}
+.gap-mid{background:rgba(255,176,32,.1);color:var(--amber);border:1px solid rgba(255,176,32,.2)}
+.gap-low{background:rgba(48,128,255,.08);color:var(--blue);border:1px solid rgba(48,128,255,.15)}
+.dir-badge{font-family:var(--mono);font-size:8px;letter-spacing:1px;padding:2px 8px;border-radius:2px;}
+.dir-long{background:rgba(0,245,160,.1);color:var(--green);border:1px solid rgba(0,245,160,.2)}
+.dir-short{background:rgba(255,48,96,.1);color:var(--red);border:1px solid rgba(255,48,96,.2)}
+.link-btn{font-family:var(--mono);font-size:8px;color:var(--muted);text-decoration:none;padding:3px 8px;border:1px solid var(--border);transition:.15s all;display:inline-block;}
+.link-btn:hover{color:var(--blue);border-color:var(--blue)}
+.link-btn.poly:hover{color:var(--purple);border-color:var(--purple)}
+.empty{padding:48px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:2px}
+.friction-bar{background:var(--panel);border:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;gap:24px;font-family:var(--mono);font-size:9px;color:var(--muted);}
+.fric-item{display:flex;align-items:center;gap:8px}
+.fric-dot{width:6px;height:6px;border-radius:50%}
+.debug-bar{background:rgba(48,128,255,.05);border:1px solid var(--border);padding:8px 18px;font-family:var(--mono);font-size:8px;color:var(--muted);display:flex;gap:24px;}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">
+    ARB<span class="logo-x"> · </span>KALSHI<span class="logo-x"> × </span><span class="logo-poly">POLYMARKET</span>
+  </div>
+  <div class="hdr-r">
+    <div class="status-dot" id="dot"></div>
+    <div class="status-txt" id="status-txt">CONNECTING</div>
+    <div id="clk">--:--:--</div>
+    <button class="refresh-btn" onclick="scan()">↻ SCAN</button>
+    <a href="/dashboard" style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;text-decoration:none;border:1px solid var(--border);padding:6px 14px;transition:.15s all" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">DASHBOARD</a>
+    <a href="/" style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;text-decoration:none;border:1px solid var(--border);padding:6px 14px;transition:.15s all" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">SCANNER</a>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="statbar">
+    <div class="stat b">
+      <div class="stat-label">Markets Scanned</div>
+      <div class="stat-val blue" id="s-scanned">--</div>
+      <div class="stat-sub">across both exchanges</div>
+    </div>
+    <div class="stat g">
+      <div class="stat-label">Arb Opportunities</div>
+      <div class="stat-val green" id="s-opps">--</div>
+      <div class="stat-sub">gap above friction</div>
+    </div>
+    <div class="stat a">
+      <div class="stat-label">Avg Gap</div>
+      <div class="stat-val amber" id="s-avggap">--</div>
+      <div class="stat-sub">cents between exchanges</div>
+    </div>
+    <div class="stat g">
+      <div class="stat-label">Best Gap</div>
+      <div class="stat-val green" id="s-bestgap">--</div>
+      <div class="stat-sub">largest single opportunity</div>
+    </div>
+    <div class="stat p">
+      <div class="stat-label">Matched Markets</div>
+      <div class="stat-val purple" id="s-matched">--</div>
+      <div class="stat-sub">found on both exchanges</div>
+    </div>
+  </div>
+
+  <div class="friction-bar">
+    <div class="fric-item"><div class="fric-dot" style="background:var(--green)"></div> ≥ 8¢ GAP — HIGH CONVICTION ARB</div>
+    <div class="fric-item"><div class="fric-dot" style="background:var(--amber)"></div> 4–8¢ GAP — MARGINAL (friction may eat it)</div>
+    <div class="fric-item"><div class="fric-dot" style="background:var(--blue)"></div> &lt; 4¢ GAP — NOISE (below friction threshold)</div>
+    <div style="margin-left:auto;color:var(--muted)">Estimated friction: ~3–5¢ round trip (spread + fees + settlement timing)</div>
+  </div>
+
+  <!-- debug bar - shows fetch counts -->
+  <div class="debug-bar">
+    <span>KALSHI: <span id="dbg-k" style="color:var(--blue)">--</span> markets</span>
+    <span>POLYMARKET: <span id="dbg-p" style="color:var(--purple)">--</span> markets</span>
+    <span>MATCHED: <span id="dbg-m" style="color:var(--green)">--</span></span>
+    <span id="dbg-msg" style="margin-left:auto"></span>
+  </div>
+
+  <div>
+    <div class="sec">
+      <span class="sec-title">ARB OPPORTUNITIES</span>
+      <span class="sec-meta" id="opp-count">SCANNING...</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Market</th>
+          <th>Kalshi YES</th>
+          <th>Polymarket YES</th>
+          <th>Gap</th>
+          <th>Direction</th>
+          <th>TTR</th>
+          <th>Links</th>
+        </tr></thead>
+        <tbody id="arb-body">
+          <tr><td colspan="7" class="empty">SCANNING MARKETS...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="sec">
+      <span class="sec-title">ALL MATCHED MARKETS</span>
+      <span class="sec-meta" id="match-count">--</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Market</th>
+          <th>Kalshi YES</th>
+          <th>Polymarket YES</th>
+          <th>Gap</th>
+          <th>TTR</th>
+          <th>Links</th>
+        </tr></thead>
+        <tbody id="match-body">
+          <tr><td colspan="6" class="empty">SCANNING...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+setInterval(()=>{
+  document.getElementById('clk').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
+},1000);
+
+function fmtDays(d){
+  if(d==null||isNaN(d)) return '--';
+  if(d<1) return '<1d';
+  if(d<7) return Math.round(d)+'d';
+  if(d<60) return Math.round(d/7)+'w';
+  return Math.round(d/30)+'mo';
+}
+
+function setStatus(state, txt){
+  const dot = document.getElementById('dot');
+  const stxt = document.getElementById('status-txt');
+  dot.className = 'status-dot' + (state==='live'?' live':state==='err'?' err':'');
+  stxt.textContent = txt;
+}
+
+// ─── KALSHI — direct live API, no proxy ────────────────────────
+async function fetchKalshi(){
+  const url = 'https://trading-api.kalshi.com/trade-api/v2/markets?limit=200&status=open';
+  try {
+    const r = await fetch(url, {headers:{Accept:'application/json'}});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    const raw = d.markets || [];
+
+    const markets = raw.map(m => {
+      // Kalshi returns prices as integers (cents) OR as floats — handle both
+      let bid = m.yes_bid ?? m.yes_bid_dollars ?? null;
+      let ask = m.yes_ask ?? m.yes_ask_dollars ?? null;
+      let last = m.last_price ?? m.last_trade_price ?? null;
+
+      // Convert cents to dollars if values look like cents (>1)
+      if(bid !== null && bid > 1)  bid  = bid  / 100;
+      if(ask !== null && ask > 1)  ask  = ask  / 100;
+      if(last !== null && last > 1) last = last / 100;
+
+      // Fall back to last price if bid/ask missing
+      const mid = (bid !== null && ask !== null)
+        ? (bid + ask) / 2
+        : (last ?? 0.50);
+
+      // Skip markets with no real price data (stuck at 0.50/0.50 with no volume)
+      const volume = parseFloat(m.volume || m.dollar_volume || 0);
+      if(mid === 0.50 && volume === 0) return null;
+
+      let days = 30;
+      const ct = m.close_time || m.expiration_time;
+      if(ct){
+        try{ days = Math.max(0,(new Date(ct)-Date.now())/86400000); }catch(e){}
+      }
+
+      const ticker = m.ticker || '';
+      return {
+        ticker,
+        title: m.title || m.subtitle || ticker || '',
+        yes_mid: Math.max(0.01, Math.min(0.99, mid)),
+        yes_ask: Math.max(0.01, Math.min(0.99, ask ?? mid)),
+        yes_bid: Math.max(0.01, Math.min(0.99, bid ?? mid)),
+        days,
+        url: `https://kalshi.com/markets/${ticker.split('-')[0].toLowerCase()}/market/${ticker}`
+      };
+    }).filter(Boolean);
+
+    document.getElementById('dbg-k').textContent = markets.length;
+    if(markets.length === 0){
+      document.getElementById('dbg-msg').textContent = 'Kalshi returned 0 usable markets — may need auth';
+      document.getElementById('dbg-msg').style.color = 'var(--amber)';
+    }
+    return markets;
+  } catch(e) {
+    console.warn('Kalshi fetch error:', e.message);
+    document.getElementById('dbg-k').textContent = 'ERR: ' + e.message;
+    document.getElementById('dbg-msg').textContent = 'Kalshi API error — see console';
+    document.getElementById('dbg-msg').style.color = 'var(--red)';
+    return [];
+  }
+}
+
+// ─── POLYMARKET — public Gamma API ────────────────────────────
+async function fetchPolymarket(){
+  try{
+    const r = await fetch('https://gamma-api.polymarket.com/markets?closed=false&limit=200&active=true',{
+      headers:{Accept:'application/json'}
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const markets = (data||[]).filter(m=>{
+      if(!m.question) return false;
+      const price = parseFloat(m.bestAsk||m.lastTradePrice||0);
+      return price > 0.01 && price < 0.99;
+    }).map(m=>{
+      const ask = parseFloat(m.bestAsk||m.lastTradePrice||0.5);
+      const bid = parseFloat(m.bestBid||m.lastTradePrice||0.5);
+      let days = 30;
+      if(m.endDateIso) days = Math.max(0,(new Date(m.endDateIso)-Date.now())/86400000);
+      return {
+        id: m.conditionId||m.id||'',
+        title: m.question||'',
+        yes_mid: (ask+bid)/2,
+        yes_ask: ask,
+        yes_bid: bid,
+        days,
+        url: m.slug ? `https://polymarket.com/event/${m.slug}` : 'https://polymarket.com'
+      };
+    });
+    document.getElementById('dbg-p').textContent = markets.length;
+    return markets;
+  } catch(e){
+    console.warn('Polymarket fetch failed:', e.message);
+    document.getElementById('dbg-p').textContent = 'ERR';
+    return [];
+  }
+}
+
+// ─── FUZZY MATCH ──────────────────────────────────────────────
+function normalize(s){
+  return s.toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+}
+
+function similarity(a, b){
+  const wa = normalize(a).split(' ');
+  const wb = normalize(b).split(' ');
+  const setA = new Set(wa);
+  const setB = new Set(wb);
+  let common = 0;
+  for(const w of setA) if(setB.has(w) && w.length > 2) common++;
+  const total = new Set([...wa,...wb].filter(w=>w.length>2)).size;
+  return total > 0 ? common/total : 0;
+}
+
+function matchMarkets(kalshi, poly){
+  const matches = [];
+  for(const k of kalshi){
+    let best = null, bestScore = 0;
+    for(const p of poly){
+      const score = similarity(k.title, p.title);
+      if(score > bestScore && score > 0.40){   // slightly looser threshold
+        bestScore = score;
+        best = p;
+      }
+    }
+    if(best){
+      const gap = Math.abs(k.yes_mid - best.yes_mid);
+      const direction = k.yes_mid > best.yes_mid
+        ? 'BUY POLY / SELL KALSHI'
+        : 'BUY KALSHI / SELL POLY';
+      matches.push({kalshi:k, poly:best, gap:Math.round(gap*100), gapRaw:gap, direction, score:bestScore});
+    }
+  }
+  document.getElementById('dbg-m').textContent = matches.length;
+  return matches.sort((a,b)=>b.gap-a.gap);
+}
+
+// ─── RENDER ───────────────────────────────────────────────────
+function gapClass(gap){
+  if(gap>=8) return 'gap-high';
+  if(gap>=4) return 'gap-mid';
+  return 'gap-low';
+}
+
+function renderArb(matches){
+  const opps = matches.filter(m=>m.gap>=4);
+  document.getElementById('opp-count').textContent = `${opps.length} OPPORTUNIT${opps.length===1?'Y':'IES'}`;
+  document.getElementById('match-count').textContent = `${matches.length} MATCHED`;
+  document.getElementById('s-matched').textContent = matches.length;
+  document.getElementById('s-opps').textContent = opps.length;
+  const gaps = matches.map(m=>m.gap);
+  document.getElementById('s-avggap').textContent = gaps.length ? Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length)+'¢':'--';
+  document.getElementById('s-bestgap').textContent = gaps.length ? Math.max(...gaps)+'¢':'--';
+
+  const ab = document.getElementById('arb-body');
+  if(!opps.length){
+    ab.innerHTML='<tr><td colspan="7" class="empty">NO ARB OPPORTUNITIES ABOVE FRICTION THRESHOLD RIGHT NOW</td></tr>';
+  } else {
+    ab.innerHTML=opps.map(m=>`<tr>
+      <td>
+        <div class="mkt-title">${m.kalshi.title.slice(0,60)}${m.kalshi.title.length>60?'…':''}</div>
+        <div class="mkt-sub">Match confidence: ${Math.round(m.score*100)}%</div>
+      </td>
+      <td class="price-k">${Math.round(m.kalshi.yes_mid*100)}¢</td>
+      <td class="price-p">${Math.round(m.poly.yes_mid*100)}¢</td>
+      <td><span class="gap-badge ${gapClass(m.gap)}">${m.gap}¢</span></td>
+      <td><span class="dir-badge ${m.direction.includes('KALSHI')?'dir-long':'dir-short'}" style="font-size:7px;letter-spacing:.5px">${m.direction}</span></td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${fmtDays(Math.min(m.kalshi.days,m.poly.days))}</td>
+      <td style="display:flex;gap:6px">
+        <a class="link-btn" href="${m.kalshi.url}" target="_blank">KALSHI ↗</a>
+        <a class="link-btn poly" href="${m.poly.url}" target="_blank">POLY ↗</a>
+      </td>
+    </tr>`).join('');
+  }
+
+  const mb = document.getElementById('match-body');
+  if(!matches.length){
+    mb.innerHTML='<tr><td colspan="6" class="empty">NO MATCHED MARKETS FOUND — both APIs returned data but no title overlaps above threshold</td></tr>';
+  } else {
+    mb.innerHTML=matches.map(m=>`<tr>
+      <td>
+        <div class="mkt-title">${m.kalshi.title.slice(0,60)}${m.kalshi.title.length>60?'…':''}</div>
+        <div class="mkt-sub">${Math.round(m.score*100)}% match · ${m.poly.title.slice(0,50)}${m.poly.title.length>50?'…':''}</div>
+      </td>
+      <td class="price-k">${Math.round(m.kalshi.yes_mid*100)}¢</td>
+      <td class="price-p">${Math.round(m.poly.yes_mid*100)}¢</td>
+      <td><span class="gap-badge ${gapClass(m.gap)}">${m.gap}¢</span></td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${fmtDays(Math.min(m.kalshi.days,m.poly.days))}</td>
+      <td style="display:flex;gap:6px">
+        <a class="link-btn" href="${m.kalshi.url}" target="_blank">K ↗</a>
+        <a class="link-btn poly" href="${m.poly.url}" target="_blank">P ↗</a>
+      </td>
+    </tr>`).join('');
+  }
+}
+
+// ─── MAIN SCAN ────────────────────────────────────────────────
+async function scan(){
+  setStatus('connecting','SCANNING...');
+  document.getElementById('arb-body').innerHTML='<tr><td colspan="7" class="empty">FETCHING DATA...</td></tr>';
+  document.getElementById('match-body').innerHTML='<tr><td colspan="6" class="empty">FETCHING DATA...</td></tr>';
+  document.getElementById('dbg-msg').textContent='';
+
+  try{
+    const [kalshi, poly] = await Promise.all([fetchKalshi(), fetchPolymarket()]);
+    document.getElementById('s-scanned').textContent = kalshi.length + poly.length;
+
+    if(!kalshi.length && !poly.length){
+      setStatus('err','FETCH FAILED');
+      document.getElementById('arb-body').innerHTML='<tr><td colspan="7" class="empty">BOTH APIS FAILED — check browser console (F12)</td></tr>';
+      return;
+    }
+
+    const matches = matchMarkets(kalshi, poly);
+    renderArb(matches);
+    setStatus('live', matches.length > 0
+      ? `LIVE · ${matches.length} MATCHED`
+      : `LIVE · K:${kalshi.length} P:${poly.length} · 0 MATCHES`);
+
+  } catch(e){
+    console.error(e);
+    setStatus('err','ERROR');
+    document.getElementById('arb-body').innerHTML=`<tr><td colspan="7" class="empty">ERROR: ${e.message}</td></tr>`;
+  }
+}
+
+scan();
+setInterval(scan, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KALSHI TRADER DASHBOARD</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #05080b;
+  --bg2:    #090d12;
+  --panel:  #0b1018;
+  --border: #151e28;
+  --bd2:    #1e2d3d;
+  --text:   #bccdd8;
+  --muted:  #3d5468;
+  --accent: #17c3e8;
+  --green:  #00e57a;
+  --red:    #ff3d5a;
+  --amber:  #ffb830;
+  --purple: #9b7fff;
+  --mono:   'IBM Plex Mono', monospace;
+  --sans:   'IBM Plex Sans', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
+body::after{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(23,195,232,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(23,195,232,.015) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* header */
+.hdr{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 24px;gap:16px}
+.logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);letter-spacing:2.5px;justify-self:start}
+.logo em{color:var(--muted);font-style:normal}
+.hdr-r{display:flex;align-items:center;gap:18px;justify-self:end}
+.pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:1px}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite}
+.pill.paper::before{background:var(--amber)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#clk{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px}
+.nav-link{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-decoration:none;border:1px solid var(--border);padding:5px 12px;transition:.15s all}
+.nav-link:hover{color:var(--accent);border-color:var(--accent)}
+
+/* main nav (prominent center) */
+.mainnav{display:flex;align-items:center;gap:8px;justify-self:center}
+.mainnav a{
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:2px;
+  color:var(--muted);text-decoration:none;
+  padding:10px 22px;border:1px solid var(--border);background:transparent;
+  transition:.15s all;cursor:pointer;
+}
+.mainnav a:hover{color:var(--text);border-color:var(--bd2);background:var(--panel)}
+.mainnav a.active{color:var(--accent);border-color:var(--accent);background:rgba(23,195,232,.08)}
+.mainnav a.active::before{content:'● ';color:var(--accent);font-size:10px}
+
+/* layout */
+.main{position:relative;z-index:1;padding:20px 24px;display:flex;flex-direction:column;gap:18px}
+
+/* stat cards */
+.cards{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.card{background:var(--panel);border:1px solid var(--border);padding:14px 16px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.card.green::before{background:var(--green)}
+.card.red::before{background:var(--red)}
+.card.amber::before{background:var(--amber)}
+.card.accent::before{background:var(--accent)}
+.card.purple::before{background:var(--purple)}
+.card.muted::before{background:var(--muted)}
+.card-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.card-val{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1;margin-bottom:3px}
+.card-val.up{color:var(--green)}
+.card-val.dn{color:var(--red)}
+.card-val.warn{color:var(--amber)}
+.card-val.acc{color:var(--accent)}
+.card-sub{font-size:10px;color:var(--muted)}
+
+/* section headers */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1px}
+.sec-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.sec-count{font-family:var(--mono);font-size:9px;color:var(--muted)}
+
+/* panel wrapper */
+.panel{background:var(--panel);border:1px solid var(--border);overflow:hidden}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.panel-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--accent)}
+.panel-meta{font-family:var(--mono);font-size:9px;color:var(--muted)}
+
+/* tables */
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--border)}
+th{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 14px;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s background}
+tbody tr:hover{background:rgba(23,195,232,.025)}
+td{padding:10px 14px;vertical-align:middle;white-space:nowrap}
+
+.tk{font-family:var(--mono);font-size:10px;color:var(--accent)}
+.title-cell{max-width:260px;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:500;color:var(--text)}
+.title-sub{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px}
+.dir-long{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(0,229,122,.1);color:var(--green);border:1px solid rgba(0,229,122,.2)}
+.dir-short{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2)}
+.path-liquid{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(23,195,232,.1);color:var(--accent);border:1px solid rgba(23,195,232,.25)}
+.path-thin{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(155,127,255,.1);color:var(--purple);border:1px solid rgba(155,127,255,.25)}
+.price-c{font-family:var(--mono);font-size:11px;color:var(--text)}
+.price-stale{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.pnl-pos{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green)}
+.pnl-neg{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--red)}
+.pnl-zero{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pct-pos{font-family:var(--mono);font-size:10px;color:var(--green);margin-left:4px}
+.pct-neg{font-family:var(--mono);font-size:10px;color:var(--red);margin-left:4px}
+.pct-zero{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:4px}
+.pct-warn{font-family:var(--mono);font-size:10px;color:var(--amber);margin-left:4px;font-weight:600}
+.score-badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:2px;background:rgba(23,195,232,.08);color:var(--accent);border:1px solid rgba(23,195,232,.15)}
+.reason-badge{font-family:var(--mono);font-size:8px;letter-spacing:1px;padding:2px 6px;border-radius:2px}
+.reason-profit{background:rgba(0,229,122,.1);color:var(--green);border:1px solid rgba(0,229,122,.2)}
+.reason-stop{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2)}
+.reason-ttr{background:rgba(155,127,255,.1);color:var(--purple);border:1px solid rgba(155,127,255,.2)}
+.reason-manual{background:rgba(61,84,104,.2);color:var(--muted);border:1px solid var(--bd2)}
+.ts-c{font-family:var(--mono);font-size:9px;color:var(--muted)}
+
+/* upnl bar */
+.upnl-wrap{display:flex;align-items:center;gap:8px}
+.upnl-bar{width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.upnl-fill-pos{height:100%;background:var(--green);border-radius:2px;transition:width .4s}
+.upnl-fill-neg{height:100%;background:var(--red);border-radius:2px;transition:width .4s}
+
+/* factor mini-scores */
+.fscore{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--muted)}
+.fscore span{color:var(--text)}
+
+/* empty state */
+.empty{padding:40px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:2px}
+
+/* mode banner */
+.mode-banner{
+  padding:10px 16px;
+  background:rgba(255,184,48,.06);
+  border:1px solid rgba(255,184,48,.15);
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:1px
+}
+.mode-banner.live{background:rgba(0,229,122,.06);border-color:rgba(0,229,122,.15);color:var(--green)}
+
+/* engine status indicator */
+.engine-status{
+  font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;
+  display:flex;align-items:center;gap:6px;
+}
+.engine-status .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+}
+.engine-status.stale .dot{background:var(--amber);animation:blink 1s ease-in-out infinite}
+.engine-status.down  .dot{background:var(--red)}
+
+/* version pill — sits next to engine status, shows what we're running */
+.version-pill{
+  font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:1px;
+  padding:2px 8px;border:1px solid rgba(23,195,232,.25);border-radius:2px;
+  background:rgba(23,195,232,.05);
+}
+
+/* pnl sparkline placeholder */
+.spark-row{display:flex;align-items:flex-end;gap:2px;height:32px}
+.spark-bar{width:8px;border-radius:1px 1px 0 0;min-height:2px;transition:height .3s}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+@media(max-width:900px){.cards{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">KALSHI<em> / </em>TRADER<em> · </em>DASHBOARD</div>
+  <nav class="mainnav">
+    <a href="/">SCANNER</a>
+    <a href="/dashboard" class="active">TRADER</a>
+    <a href="/tradelog">TRADE LOG</a>
+  </nav>
+  <div class="hdr-r">
+    <div class="engine-status" id="engineStatus" title="Connection to trader engine">
+      <span class="dot"></span>
+      <span id="engineLabel">ENGINE: --</span>
+    </div>
+    <span class="version-pill" id="versionPill" title="Engine version + current cycle">--</span>
+    <div class="pill paper" id="modePill">PAPER TRADING</div>
+    <div id="clk">--:--:--</div>
+    <a class="nav-link" href="/arb" style="color:var(--purple);border-color:rgba(155,127,255,.3)">ARB</a>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Mode banner -->
+  <div class="mode-banner" id="modeBanner">
+    PAPER MODE -- Signals are tracked but no real orders are placed. Set PAPER_TRADE = False in kalshi_trader.py to go live.
+  </div>
+
+  <!-- Stat cards -->
+  <div class="cards" id="cards">
+    <div class="card green">
+      <div class="card-label">Total P&amp;L</div>
+      <div class="card-val up" id="c-pnl">$0.00</div>
+      <div class="card-sub" id="c-pnl-sub">realized, closed trades</div>
+    </div>
+    <div class="card green">
+      <div class="card-label">% Return</div>
+      <div class="card-val up" id="c-pct">+0.00%</div>
+      <div class="card-sub" id="c-pct-sub">on $50,000 capital</div>
+    </div>
+    <div class="card accent">
+      <div class="card-label">Open Positions</div>
+      <div class="card-val acc" id="c-open">0</div>
+      <div class="card-sub" id="c-open-sub">active right now</div>
+    </div>
+    <div class="card amber">
+      <div class="card-label">Capital at Risk</div>
+      <div class="card-val warn" id="c-risk">$0</div>
+      <div class="card-sub">deployed in open trades</div>
+    </div>
+    <div class="card purple">
+      <div class="card-label">Closed Trades</div>
+      <div class="card-val" id="c-closed" style="color:var(--purple)">0</div>
+      <div class="card-sub" id="c-closed-sub">total resolved</div>
+    </div>
+    <div class="card muted">
+      <div class="card-label">Uptime</div>
+      <div class="card-val" id="c-uptime" style="color:var(--text);font-size:14px;line-height:1.4">--</div>
+      <div class="card-sub">since last deploy</div>
+    </div>
+    <div class="card amber">
+      <div class="card-label">Thin Book</div>
+      <div class="card-val" id="c-thin" style="color:var(--amber);font-size:14px;line-height:1.4">--</div>
+      <div class="card-sub" id="c-thin-sub">hold-to-resolve capacity</div>
+    </div>
+  </div>
+
+  <!-- Open positions -->
+  <div class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">OPEN POSITIONS</span>
+      <span class="panel-meta" id="open-count">0 POSITIONS</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Market</th>
+        <th>Kalshi</th>
+        <th>Path</th>
+        <th>Dir</th>
+        <th>Entry</th>
+        <th>Current</th>
+        <th>Contracts</th>
+        <th>uPnL</th>
+      </tr></thead>
+      <tbody id="open-body">
+        <tr><td colspan="8" class="empty">NO OPEN POSITIONS</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+// --------------------------------------------------------------------------
+// v2.3 (2026-05-25): VERSION PILL IN HEADER.
+//
+// Moved engine version + cycle from a cards-grid slot into a small pill
+// next to the ENGINE: ONLINE indicator in the header. Version is environment
+// state, not a metric. Frees up the 7th card slot so Thin Book sits in-line.
+//
+// Prior v2.2: liquidity routing display (LIQUID/THIN path column, Thin Book gauge).
+//
+// Engine /state schema (kalshi_trader.py v2.0):
+//   version, cycle, uptime_sec, open_count, closed_count, daily_pnl,
+//   thin_book_used_usd, thin_book_cap_usd, thin_book_pct,
+//   liquid_book_used_usd, skip_counts,
+//   config: {...},
+//   open_positions: [{ticker, direction, entry_price, current_price,
+//                     contracts, size_usd, upnl, pnl, path,
+//                     entry_volume_24h, current_volume_24h}, ...]
+// --------------------------------------------------------------------------
+const ENGINE_URL = 'https://kalshi-trader-engine.onrender.com/state';
+
+const PROFIT_TARGET = 0.20;  // matches trader CFG.PROFIT_TARGET
+const STOP_LOSS     = 0.10;  // matches trader CFG.STOP_LOSS
+
+setInterval(()=>{
+  document.getElementById('clk').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
+},1000);
+
+function fmtPrice(p){ return (p != null) ? (p*100).toFixed(1)+'c' : '--'; }
+function fmtUptime(sec){
+  if(sec == null) return '--';
+  if(sec < 60) return sec + 's';
+  if(sec < 3600) return Math.floor(sec/60) + 'm';
+  if(sec < 86400) return Math.floor(sec/3600) + 'h ' + Math.floor((sec%3600)/60) + 'm';
+  return Math.floor(sec/86400) + 'd ' + Math.floor((sec%86400)/3600) + 'h';
+}
+function pnlClass(v){ return v>0?'pnl-pos':v<0?'pnl-neg':'pnl-zero'; }
+
+// Color the % gain/loss with an amber warning when within 5% of an exit threshold
+function pctClass(pct, direction){
+  if(pct == null) return 'pct-zero';
+  // pct here is signed: positive = gain, negative = loss (already direction-adjusted upstream)
+  if(pct >= PROFIT_TARGET) return 'pct-pos';
+  if(pct <= -STOP_LOSS)    return 'pct-neg';
+  if(pct >= PROFIT_TARGET - 0.05) return 'pct-warn';  // within 5% of profit target
+  if(pct <= -STOP_LOSS + 0.05)    return 'pct-warn';  // within 5% of stop loss
+  if(pct > 0) return 'pct-pos';
+  if(pct < 0) return 'pct-neg';
+  return 'pct-zero';
+}
+
+function setEngineStatus(state, label){
+  const el = document.getElementById('engineStatus');
+  el.className = 'engine-status' + (state === 'down' ? ' down' : state === 'stale' ? ' stale' : '');
+  document.getElementById('engineLabel').textContent = 'ENGINE: ' + label;
+}
+
+async function refresh(){
+  let data;
+  try{
+    const r = await fetch(ENGINE_URL, { cache: 'no-store' });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    data = await r.json();
+    setEngineStatus('ok', 'ONLINE');
+  } catch(e){
+    console.warn('Engine fetch failed:', e);
+    setEngineStatus('down', 'OFFLINE');
+    return;
+  }
+
+  // Engine /state schema described at the top of this script.
+  const open = data.open_positions || [];
+  const pnl  = data.daily_pnl || 0;
+  const capAtRisk = open.reduce((s, p) => s + (p.entry_price || 0) * (p.contracts || 0), 0);
+
+  // Aggregate unrealized P&L across all open positions
+  const totalUpnl = open.reduce((s, p) => s + (p.upnl || 0), 0);
+
+  // Engine version + cycle now live in header pill (v2.3)
+  const v = data.version || '--';
+  const c = data.cycle != null ? data.cycle : '--';
+  document.getElementById('versionPill').textContent = v + ' · cycle ' + c;
+  document.getElementById('c-uptime').textContent   = fmtUptime(data.uptime_sec);
+
+  // Stat cards
+  document.getElementById('c-pnl').textContent    = (pnl >= 0 ? '+' : '-') + '$' + Math.abs(pnl).toFixed(2);
+  document.getElementById('c-pnl').className      = 'card-val ' + (pnl >= 0 ? 'up' : 'dn');
+  // Show aggregate unrealized in the subtitle so it's visible at a glance
+  const uSign = totalUpnl >= 0 ? '+' : '-';
+  document.getElementById('c-pnl-sub').textContent =
+    'realized · open uPnL ' + uSign + '$' + Math.abs(totalUpnl).toFixed(2);
+
+  // % Return — P&L over total capital from engine config (paper: $50K, live: $10K)
+  const totalCapital = (data.config && data.config.total_capital) || 50000;
+  const pctReturn = (pnl / totalCapital) * 100;
+  const pctEl = document.getElementById('c-pct');
+  pctEl.textContent = (pctReturn >= 0 ? '+' : '') + pctReturn.toFixed(3) + '%';
+  pctEl.className   = 'card-val ' + (pctReturn >= 0 ? 'up' : 'dn');
+  document.getElementById('c-pct-sub').textContent =
+    'on $' + Math.round(totalCapital).toLocaleString() + ' capital';
+
+  document.getElementById('c-open').textContent   = data.open_count ?? 0;
+  document.getElementById('c-risk').textContent   = '$' + Math.round(capAtRisk).toLocaleString();
+  document.getElementById('c-closed').textContent = data.closed_count ?? 0;
+
+  // v2.0: Thin Book gauge
+  const thinUsed = data.thin_book_used_usd || 0;
+  const thinCap  = data.thin_book_cap_usd || 0;
+  const thinPct  = data.thin_book_pct || 0;
+  const thinEl = document.getElementById('c-thin');
+  if(thinCap > 0){
+    thinEl.textContent = '$' + Math.round(thinUsed) + ' / $' + Math.round(thinCap);
+    document.getElementById('c-thin-sub').textContent =
+      thinPct.toFixed(0) + '% of ' + Math.round(thinCap/totalCapital*100) + '% cap used';
+  } else {
+    thinEl.textContent = '--';
+  }
+
+  // Open positions table
+  document.getElementById('open-count').textContent = `${open.length} POSITION${open.length !== 1 ? 'S' : ''}`;
+  const ob = document.getElementById('open-body');
+  if(!open.length){
+    ob.innerHTML = '<tr><td colspan="8" class="empty">NO OPEN POSITIONS -- ENGINE SCANNING</td></tr>';
+  } else {
+    ob.innerHTML = open.map(p => {
+      // v1.9 fields: prefer upnl over pnl (pnl is realized = 0 for open positions)
+      const positionUpnl = (p.upnl != null) ? p.upnl : (p.pnl || 0);
+      const entry   = p.entry_price;
+      const curr    = p.current_price;
+
+      // Direction-adjusted percentage gain/loss
+      let pct = null;
+      if(entry != null && curr != null && entry > 0){
+        pct = (p.direction === 'LONG')
+          ? (curr - entry) / entry
+          : (entry - curr) / entry;
+      }
+
+      // Format current price — dim if unavailable
+      const currCell = (curr != null)
+        ? `<td class="price-c">${fmtPrice(curr)}</td>`
+        : `<td class="price-stale">--</td>`;
+
+      // Percentage tag (only shown if we have a current price)
+      const pctTag = (pct != null)
+        ? `<span class="${pctClass(pct, p.direction)}">${pct >= 0 ? '+' : ''}${(pct*100).toFixed(1)}%</span>`
+        : '';
+
+      const tickerPrefix = (p.ticker || '').split('-')[0].toLowerCase();
+
+      // v2.0: path label per position
+      const path = p.path || 'LIQUID';  // default for backwards compat with v1.9 positions
+      const pathCell = path === 'THIN'
+        ? '<span class="path-thin">THIN</span>'
+        : '<span class="path-liquid">LIQUID</span>';
+
+      return `<tr>
+        <td>
+          <div class="title-cell">${p.ticker || '--'}</div>
+        </td>
+        <td><a href="https://kalshi.com/markets/${tickerPrefix}/market/${p.ticker || ''}" target="_blank" style="font-family:var(--mono);font-size:9px;padding:3px 8px;border:1px solid rgba(23,195,232,.3);color:var(--accent);text-decoration:none;border-radius:2px;white-space:nowrap" onmouseover="this.style.background='rgba(23,195,232,.1)'" onmouseout="this.style.background='transparent'">VIEW ↗</a></td>
+        <td>${pathCell}</td>
+        <td><span class="${p.direction === 'LONG' ? 'dir-long' : 'dir-short'}">${p.direction || '--'}</span></td>
+        <td class="price-c">${fmtPrice(entry)}</td>
+        ${currCell}
+        <td class="price-c">${p.contracts || 0}</td>
+        <td class="${pnlClass(positionUpnl)}">${positionUpnl >= 0 ? '+' : ''}$${Math.abs(positionUpnl).toFixed(2)}${pctTag}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+refresh();
+setInterval(refresh, 5000); // refresh every 5 seconds
+</script>
+</body>
+</html>

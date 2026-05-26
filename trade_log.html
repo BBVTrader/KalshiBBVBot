@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KALSHI TRADE LOG</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #05080b;
+  --bg2:    #090d12;
+  --panel:  #0b1018;
+  --border: #151e28;
+  --bd2:    #1e2d3d;
+  --text:   #bccdd8;
+  --muted:  #3d5468;
+  --accent: #17c3e8;
+  --green:  #00e57a;
+  --red:    #ff3d5a;
+  --amber:  #ffb830;
+  --purple: #9b7fff;
+  --mono:   'IBM Plex Mono', monospace;
+  --sans:   'IBM Plex Sans', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
+body::after{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(23,195,232,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(23,195,232,.015) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* header */
+.hdr{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 24px;gap:16px}
+.logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);letter-spacing:2.5px;justify-self:start}
+.logo em{color:var(--muted);font-style:normal}
+.hdr-r{display:flex;align-items:center;gap:18px;justify-self:end}
+.pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:1px}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite}
+.pill.paper::before{background:var(--amber)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#clk{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px}
+.nav-link{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-decoration:none;border:1px solid var(--border);padding:5px 12px;transition:.15s all;cursor:pointer;background:transparent}
+.nav-link:hover{color:var(--accent);border-color:var(--accent)}
+.nav-link.export{color:var(--green);border-color:rgba(0,229,122,.3)}
+.nav-link.export:hover{color:var(--green);border-color:var(--green);background:rgba(0,229,122,.05)}
+
+/* main nav (prominent center) */
+.mainnav{display:flex;align-items:center;gap:8px;justify-self:center}
+.mainnav a{
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:2px;
+  color:var(--muted);text-decoration:none;
+  padding:10px 22px;border:1px solid var(--border);background:transparent;
+  transition:.15s all;cursor:pointer;
+}
+.mainnav a:hover{color:var(--text);border-color:var(--bd2);background:var(--panel)}
+.mainnav a.active{color:var(--accent);border-color:var(--accent);background:rgba(23,195,232,.08)}
+.mainnav a.active::before{content:'● ';color:var(--accent);font-size:10px}
+
+/* layout */
+.main{position:relative;z-index:1;padding:20px 24px;display:flex;flex-direction:column;gap:18px}
+
+/* summary cards */
+.summary{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.card{background:var(--panel);border:1px solid var(--border);padding:14px 16px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.card.green::before{background:var(--green)}
+.card.red::before{background:var(--red)}
+.card.amber::before{background:var(--amber)}
+.card.accent::before{background:var(--accent)}
+.card.purple::before{background:var(--purple)}
+.card.muted::before{background:var(--muted)}
+.card-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.card-val{font-family:var(--mono);font-size:18px;font-weight:600;line-height:1;margin-bottom:3px}
+.card-val.up{color:var(--green)}
+.card-val.dn{color:var(--red)}
+.card-val.warn{color:var(--amber)}
+.card-val.acc{color:var(--accent)}
+.card-val.neut{color:var(--text)}
+.card-val.purp{color:var(--purple)}
+.card-sub{font-size:10px;color:var(--muted)}
+
+/* filter bar */
+.ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--panel);border:1px solid var(--border)}
+.cl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.fbg{display:flex;gap:4px}
+.fb{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:.12s all;text-transform:uppercase}
+.fb.on{border-color:var(--accent);color:var(--accent);background:rgba(23,195,232,.06)}
+.fb:hover:not(.on){color:var(--text);border-color:var(--bd2)}
+.searchwrap{margin-left:auto;display:flex;align-items:center;gap:8px}
+#search{background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 10px;width:200px;outline:none}
+#search:focus{border-color:var(--accent)}
+
+/* panel wrapper */
+.panel{background:var(--panel);border:1px solid var(--border);overflow:hidden}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.panel-title{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--accent)}
+.panel-meta{font-family:var(--mono);font-size:9px;color:var(--muted)}
+
+/* tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--border)}
+th{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 14px;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--text)}
+th.sa::after{content:' ↑';color:var(--accent)}
+th.sd::after{content:' ↓';color:var(--accent)}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s background}
+tbody tr:hover{background:rgba(23,195,232,.025)}
+tbody tr.win{background:rgba(0,229,122,.02)}
+tbody tr.loss{background:rgba(255,61,90,.02)}
+tbody tr.win:hover{background:rgba(0,229,122,.05)}
+tbody tr.loss:hover{background:rgba(255,61,90,.05)}
+td{padding:10px 14px;vertical-align:middle;white-space:nowrap}
+td.right{text-align:right}
+
+.tk{font-family:var(--mono);font-size:10px;color:var(--text)}
+.dir-long{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(0,229,122,.1);color:var(--green);border:1px solid rgba(0,229,122,.2)}
+.dir-short{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:2px;background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2)}
+.price-c{font-family:var(--mono);font-size:11px;color:var(--text)}
+.pnl-pos{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green)}
+.pnl-neg{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--red)}
+.pnl-zero{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pct-pos{font-family:var(--mono);font-size:11px;color:var(--green)}
+.pct-neg{font-family:var(--mono);font-size:11px;color:var(--red)}
+.pct-zero{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.ts-c{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.score-cell{font-family:var(--mono);font-size:11px;color:var(--accent)}
+
+.reason-badge{font-family:var(--mono);font-size:8px;letter-spacing:1px;padding:3px 7px;border-radius:2px;display:inline-block}
+.reason-profit{background:rgba(0,229,122,.1);color:var(--green);border:1px solid rgba(0,229,122,.2)}
+.reason-stop{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2)}
+.reason-settled{background:rgba(155,127,255,.1);color:var(--purple);border:1px solid rgba(155,127,255,.2)}
+.reason-orphan{background:rgba(255,184,48,.1);color:var(--amber);border:1px solid rgba(255,184,48,.2)}
+.reason-other{background:rgba(61,84,104,.2);color:var(--muted);border:1px solid var(--bd2)}
+
+/* load more */
+.load-more-wrap{padding:14px;text-align:center;background:var(--bg2);border-top:1px solid var(--border)}
+.load-more{background:transparent;border:1px solid var(--bd2);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:8px 20px;cursor:pointer;transition:.15s all}
+.load-more:hover{background:rgba(23,195,232,.06);border-color:var(--accent)}
+
+/* empty state */
+.empty{padding:60px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:2px}
+
+/* engine status indicator */
+.engine-status{
+  font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;
+  display:flex;align-items:center;gap:6px;
+}
+.engine-status .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+}
+.engine-status.stale .dot{background:var(--amber);animation:blink 1s ease-in-out infinite}
+.engine-status.down  .dot{background:var(--red)}
+
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+@media(max-width:1200px){.summary{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:700px){.summary{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">KALSHI<em> / </em>TRADE<em> · </em>LOG</div>
+  <nav class="mainnav">
+    <a href="/">SCANNER</a>
+    <a href="/dashboard">TRADER</a>
+    <a href="/tradelog" class="active">TRADE LOG</a>
+  </nav>
+  <div class="hdr-r">
+    <div class="engine-status" id="engineStatus" title="Connection to trader engine">
+      <span class="dot"></span>
+      <span id="engineLabel">ENGINE: --</span>
+    </div>
+    <div class="pill paper" id="modePill">PAPER TRADING</div>
+    <div id="clk">--:--:--</div>
+    <button class="nav-link export" onclick="downloadCSV()">⬇ CSV</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Summary cards -->
+  <div class="summary">
+    <div class="card green">
+      <div class="card-label">Total P&amp;L</div>
+      <div class="card-val up" id="s-pnl">$0.00</div>
+      <div class="card-sub" id="s-pnl-pct">+0.000% on capital</div>
+    </div>
+    <div class="card accent">
+      <div class="card-label">Total Trades</div>
+      <div class="card-val acc" id="s-count">0</div>
+      <div class="card-sub" id="s-count-sub">closed round-trips</div>
+    </div>
+    <div class="card green">
+      <div class="card-label">Win Rate</div>
+      <div class="card-val up" id="s-wr">0%</div>
+      <div class="card-sub" id="s-wr-sub">0W / 0L / 0F</div>
+    </div>
+    <div class="card amber">
+      <div class="card-label">Avg Winner</div>
+      <div class="card-val warn" id="s-avg-w">$0.00</div>
+      <div class="card-sub" id="s-avg-w-pct">+0.0% avg</div>
+    </div>
+    <div class="card red">
+      <div class="card-label">Avg Loser</div>
+      <div class="card-val dn" id="s-avg-l">$0.00</div>
+      <div class="card-sub" id="s-avg-l-pct">-0.0% avg</div>
+    </div>
+    <div class="card purple">
+      <div class="card-label">Best Trade</div>
+      <div class="card-val purp" id="s-best">$0.00</div>
+      <div class="card-sub" id="s-best-ticker">--</div>
+    </div>
+    <div class="card muted">
+      <div class="card-label">Worst Trade</div>
+      <div class="card-val neut" id="s-worst" style="color:var(--text)">$0.00</div>
+      <div class="card-sub" id="s-worst-ticker">--</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="ctrl">
+    <span class="cl">Result:</span>
+    <div class="fbg" id="resultFilters">
+      <button class="fb on" data-v="ALL"    onclick="setResult(this)">ALL</button>
+      <button class="fb"    data-v="WINS"   onclick="setResult(this)">WINS</button>
+      <button class="fb"    data-v="LOSSES" onclick="setResult(this)">LOSSES</button>
+      <button class="fb"    data-v="FLAT"   onclick="setResult(this)">FLAT</button>
+    </div>
+    <span class="cl" style="margin-left:6px">Reason:</span>
+    <div class="fbg" id="reasonFilters">
+      <button class="fb on" data-v="ALL"           onclick="setReason(this)">ALL</button>
+      <button class="fb"    data-v="profit_target" onclick="setReason(this)">PROFIT</button>
+      <button class="fb"    data-v="stop_loss"     onclick="setReason(this)">STOP</button>
+      <button class="fb"    data-v="market_"       onclick="setReason(this)">SETTLED</button>
+      <button class="fb"    data-v="orphan_"       onclick="setReason(this)">ORPHAN</button>
+    </div>
+    <span class="cl" style="margin-left:6px">Dir:</span>
+    <div class="fbg" id="dirFilters">
+      <button class="fb on" data-v="ALL"   onclick="setDir(this)">ALL</button>
+      <button class="fb"    data-v="LONG"  onclick="setDir(this)">LONG</button>
+      <button class="fb"    data-v="SHORT" onclick="setDir(this)">SHORT</button>
+    </div>
+    <div class="searchwrap">
+      <span class="cl">Search:</span>
+      <input id="search" type="text" placeholder="ticker..." oninput="renderTable()">
+    </div>
+  </div>
+
+  <!-- Trade log table -->
+  <div class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">CLOSED TRADES</span>
+      <span class="panel-meta" id="row-count">0 SHOWING</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="thead-row">
+          <th onclick="srt('closed_at')">Closed</th>
+          <th onclick="srt('ticker')">Ticker</th>
+          <th>Kalshi</th>
+          <th onclick="srt('direction')">Dir</th>
+          <th onclick="srt('entry')" class="right">Entry</th>
+          <th onclick="srt('exit')" class="right">Exit</th>
+          <th onclick="srt('contracts')" class="right">Contracts</th>
+          <th onclick="srt('pnl')" class="right">$ P&amp;L</th>
+          <th onclick="srt('pnl_pct')" class="right">% Return</th>
+          <th onclick="srt('composite')" class="right">Score</th>
+          <th onclick="srt('reason')">Reason</th>
+        </tr></thead>
+        <tbody id="log-body">
+          <tr><td colspan="11" class="empty">LOADING...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+      <button class="load-more" onclick="loadMore()">LOAD MORE (<span id="remaining">0</span> remaining)</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// --------------------------------------------------------------------------
+// Trade Log v1.0 (2026-05-25)
+//
+// Reads /api/trades from the trader engine. Each item in `trades` is a
+// completed round-trip with:
+//   ticker, direction, opened_at, closed_at, entry, exit, contracts,
+//   size_usd, composite, ofi, ttr_days, pnl, reason, paper
+// --------------------------------------------------------------------------
+const ENGINE_URL  = 'https://kalshi-trader-engine.onrender.com';
+const TRADES_URL  = ENGINE_URL + '/api/trades';
+const STATE_URL   = ENGINE_URL + '/state';
+const PAGE_SIZE   = 200;
+
+let allTrades   = [];
+let summary     = {};
+let totalCap    = 50000;
+let resultF     = 'ALL';
+let reasonF     = 'ALL';
+let dirF        = 'ALL';
+let sortK       = 'closed_at';
+let sortD       = 'desc';
+let displayN    = PAGE_SIZE;
+
+setInterval(()=>{
+  document.getElementById('clk').textContent = new Date().toLocaleTimeString('en-US',{hour12:false});
+}, 1000);
+
+function setEngineStatus(state, label){
+  const el = document.getElementById('engineStatus');
+  el.className = 'engine-status' + (state === 'down' ? ' down' : state === 'stale' ? ' stale' : '');
+  document.getElementById('engineLabel').textContent = 'ENGINE: ' + label;
+}
+
+function fmtPrice(p){
+  if(p == null) return '--';
+  // Accept price as either decimal (0-1) or cents (1-100)
+  const c = p > 1 ? p : p * 100;
+  return c.toFixed(1) + 'c';
+}
+
+function fmtTime(isoStr){
+  if(!isoStr) return '--';
+  try{
+    const d = new Date(isoStr);
+    return d.toLocaleString('en-US',{
+      month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit',
+      hour12:false
+    });
+  } catch(e){ return '--'; }
+}
+
+function pnlClass(v){ return v>0?'pnl-pos':v<0?'pnl-neg':'pnl-zero'; }
+function pctClass(v){ return v>0?'pct-pos':v<0?'pct-neg':'pct-zero'; }
+
+function reasonBadge(reason){
+  const r = reason || '';
+  let cls = 'reason-other';
+  let label = r.toUpperCase().replace(/_/g, ' ');
+  if(r === 'profit_target')    { cls = 'reason-profit';  label = 'PROFIT'; }
+  else if(r === 'stop_loss')   { cls = 'reason-stop';    label = 'STOP'; }
+  else if(r.startsWith('market_')) { cls = 'reason-settled'; label = 'SETTLED'; }
+  else if(r.startsWith('orphan_')) { cls = 'reason-orphan';  label = 'ORPHAN'; }
+  return `<span class="reason-badge ${cls}">${label}</span>`;
+}
+
+// Compute % return for a single trade
+function tradePct(t){
+  if(t.entry == null || t.exit == null || t.entry === 0) return null;
+  // Direction-adjusted
+  const pct = (t.direction === 'LONG')
+    ? (t.exit - t.entry) / t.entry
+    : (t.entry - t.exit) / t.entry;
+  return pct;
+}
+
+async function loadData(){
+  // Get total capital from /state for % return calc
+  try{
+    const r = await fetch(STATE_URL, {cache:'no-store'});
+    if(r.ok){
+      const s = await r.json();
+      if(s.config && s.config.total_capital) totalCap = s.config.total_capital;
+    }
+  } catch(e){
+    console.warn('State fetch failed (continuing with default capital):', e);
+  }
+
+  // Get trade log
+  try{
+    const r = await fetch(TRADES_URL, {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    allTrades = data.trades || [];
+    summary   = data.summary || {};
+    setEngineStatus('ok', 'ONLINE');
+  } catch(e){
+    console.warn('Trades fetch failed:', e);
+    setEngineStatus('down', 'OFFLINE');
+    document.getElementById('log-body').innerHTML =
+      '<tr><td colspan="11" class="empty">ENGINE UNREACHABLE</td></tr>';
+    return;
+  }
+
+  // Enrich trades with computed pnl_pct for sorting/display
+  allTrades.forEach(t => {
+    t.pnl_pct = tradePct(t);
+  });
+
+  renderSummary();
+  renderTable();
+}
+
+function renderSummary(){
+  const s = summary;
+  const total   = s.round_trips || allTrades.length || 0;
+  const wins    = s.wins   || 0;
+  const losses  = s.losses || 0;
+  const flat    = s.flat   || 0;
+  const totalP  = s.total_pnl || 0;
+  const wr      = s.win_rate_pct || 0;
+
+  // Compute avg winner / avg loser from filtered set (since summary may not include these)
+  const winList  = allTrades.filter(t => (t.pnl || 0) > 0);
+  const lossList = allTrades.filter(t => (t.pnl || 0) < 0);
+  const avgW     = winList.length  ? winList.reduce((a,t)=>a+(t.pnl||0),0) / winList.length : 0;
+  const avgL     = lossList.length ? lossList.reduce((a,t)=>a+(t.pnl||0),0) / lossList.length : 0;
+  const avgWPct  = winList.length  ? winList.reduce((a,t)=>a+(t.pnl_pct||0),0) / winList.length : 0;
+  const avgLPct  = lossList.length ? lossList.reduce((a,t)=>a+(t.pnl_pct||0),0) / lossList.length : 0;
+
+  // Best / worst
+  const sorted = [...allTrades].sort((a,b)=>(b.pnl||0)-(a.pnl||0));
+  const best   = sorted[0];
+  const worst  = sorted[sorted.length - 1];
+
+  // P&L card
+  document.getElementById('s-pnl').textContent = (totalP >= 0 ? '+' : '-') + '$' + Math.abs(totalP).toFixed(2);
+  document.getElementById('s-pnl').className   = 'card-val ' + (totalP >= 0 ? 'up' : 'dn');
+  const pctOnCap = (totalP / totalCap) * 100;
+  document.getElementById('s-pnl-pct').textContent =
+    (pctOnCap >= 0 ? '+' : '') + pctOnCap.toFixed(3) + '% on $' + Math.round(totalCap).toLocaleString();
+
+  // Counts
+  document.getElementById('s-count').textContent = total;
+  document.getElementById('s-count-sub').textContent = `closed round-trips`;
+
+  // Win rate
+  document.getElementById('s-wr').textContent = wr.toFixed(0) + '%';
+  document.getElementById('s-wr').className   = 'card-val ' + (wr >= 33 ? 'up' : 'dn');
+  document.getElementById('s-wr-sub').textContent = `${wins}W / ${losses}L / ${flat}F`;
+
+  // Avg winner
+  document.getElementById('s-avg-w').textContent = '+$' + Math.abs(avgW).toFixed(2);
+  document.getElementById('s-avg-w-pct').textContent = '+' + (avgWPct*100).toFixed(1) + '% avg';
+
+  // Avg loser
+  document.getElementById('s-avg-l').textContent = '-$' + Math.abs(avgL).toFixed(2);
+  document.getElementById('s-avg-l-pct').textContent = (avgLPct*100).toFixed(1) + '% avg';
+
+  // Best / worst
+  if(best){
+    document.getElementById('s-best').textContent = '+$' + Math.abs(best.pnl).toFixed(2);
+    document.getElementById('s-best-ticker').textContent = best.ticker.slice(0, 20);
+  }
+  if(worst){
+    const wp = worst.pnl || 0;
+    document.getElementById('s-worst').textContent = (wp >= 0 ? '+' : '-') + '$' + Math.abs(wp).toFixed(2);
+    document.getElementById('s-worst').className = 'card-val ' + (wp >= 0 ? 'up' : 'dn');
+    document.getElementById('s-worst-ticker').textContent = worst.ticker.slice(0, 20);
+  }
+}
+
+function getFiltered(){
+  const searchTerm = (document.getElementById('search').value || '').toUpperCase().trim();
+  return allTrades.filter(t => {
+    // Result filter
+    const p = t.pnl || 0;
+    if(resultF === 'WINS'   && p <= 0) return false;
+    if(resultF === 'LOSSES' && p >= 0) return false;
+    if(resultF === 'FLAT'   && p !== 0) return false;
+
+    // Reason filter
+    if(reasonF !== 'ALL'){
+      const r = t.reason || '';
+      if(reasonF === 'market_' && !r.startsWith('market_')) return false;
+      if(reasonF === 'orphan_' && !r.startsWith('orphan_')) return false;
+      if(reasonF !== 'market_' && reasonF !== 'orphan_' && r !== reasonF) return false;
+    }
+
+    // Direction filter
+    if(dirF !== 'ALL' && t.direction !== dirF) return false;
+
+    // Search
+    if(searchTerm && !(t.ticker || '').toUpperCase().includes(searchTerm)) return false;
+
+    return true;
+  });
+}
+
+function renderTable(){
+  const filtered = getFiltered();
+
+  // Sort
+  filtered.sort((a, b) => {
+    let va = a[sortK];
+    let vb = b[sortK];
+    if(va == null) va = sortD === 'asc' ? Infinity : -Infinity;
+    if(vb == null) vb = sortD === 'asc' ? Infinity : -Infinity;
+    if(typeof va === 'string') return sortD === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortD === 'asc' ? va - vb : vb - va;
+  });
+
+  const total      = filtered.length;
+  const showing    = Math.min(displayN, total);
+  const remaining  = total - showing;
+
+  document.getElementById('row-count').textContent =
+    `${showing} OF ${total} SHOWING` + (allTrades.length !== total ? ` (${allTrades.length} TOTAL)` : '');
+
+  const lmw = document.getElementById('load-more-wrap');
+  if(remaining > 0){
+    lmw.style.display = 'block';
+    document.getElementById('remaining').textContent = remaining;
+  } else {
+    lmw.style.display = 'none';
+  }
+
+  const ob = document.getElementById('log-body');
+  if(!filtered.length){
+    ob.innerHTML = '<tr><td colspan="11" class="empty">NO TRADES MATCH FILTERS</td></tr>';
+    return;
+  }
+
+  const slice = filtered.slice(0, showing);
+  ob.innerHTML = slice.map(t => {
+    const pnl    = t.pnl || 0;
+    const pct    = t.pnl_pct;
+    const rowCls = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : '';
+    const tickerPrefix = (t.ticker || '').split('-')[0].toLowerCase();
+    return `<tr class="${rowCls}">
+      <td class="ts-c">${fmtTime(t.closed_at)}</td>
+      <td class="tk">${t.ticker || '--'}</td>
+      <td><a href="https://kalshi.com/markets/${tickerPrefix}/market/${t.ticker || ''}" target="_blank" style="font-family:var(--mono);font-size:9px;padding:3px 8px;border:1px solid rgba(23,195,232,.3);color:var(--accent);text-decoration:none;border-radius:2px;white-space:nowrap" onmouseover="this.style.background='rgba(23,195,232,.1)'" onmouseout="this.style.background='transparent'">VIEW ↗</a></td>
+      <td><span class="${t.direction === 'LONG' ? 'dir-long' : 'dir-short'}">${t.direction || '--'}</span></td>
+      <td class="price-c right">${fmtPrice(t.entry)}</td>
+      <td class="price-c right">${fmtPrice(t.exit)}</td>
+      <td class="price-c right">${t.contracts || 0}</td>
+      <td class="${pnlClass(pnl)} right">${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toFixed(2)}</td>
+      <td class="${pctClass(pct)} right">${pct == null ? '--' : (pct >= 0 ? '+' : '') + (pct*100).toFixed(1) + '%'}</td>
+      <td class="score-cell right">${t.composite != null ? t.composite : '--'}</td>
+      <td>${reasonBadge(t.reason)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Filter handlers
+function setResult(btn){
+  document.querySelectorAll('#resultFilters .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  resultF = btn.dataset.v;
+  displayN = PAGE_SIZE;
+  renderTable();
+}
+function setReason(btn){
+  document.querySelectorAll('#reasonFilters .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  reasonF = btn.dataset.v;
+  displayN = PAGE_SIZE;
+  renderTable();
+}
+function setDir(btn){
+  document.querySelectorAll('#dirFilters .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  dirF = btn.dataset.v;
+  displayN = PAGE_SIZE;
+  renderTable();
+}
+
+// Sort handler
+function srt(k){
+  if(sortK === k) sortD = sortD === 'desc' ? 'asc' : 'desc';
+  else { sortK = k; sortD = 'desc'; }
+  document.querySelectorAll('#thead-row th').forEach(th => {
+    th.classList.remove('sa', 'sd');
+    const onclickAttr = th.getAttribute('onclick') || '';
+    if(onclickAttr === `srt('${k}')`) th.classList.add(sortD === 'asc' ? 'sa' : 'sd');
+  });
+  renderTable();
+}
+
+// Load more
+function loadMore(){
+  displayN += PAGE_SIZE;
+  renderTable();
+}
+
+// CSV export — exports the currently filtered set (respects all filter buttons)
+function downloadCSV(){
+  const filtered = getFiltered();
+  if(!filtered.length){
+    alert('No trades to export with current filters.');
+    return;
+  }
+  const headers = [
+    'closed_at','opened_at','ticker','direction','entry','exit',
+    'contracts','size_usd','pnl','pnl_pct','composite','ofi','ttr_days',
+    'reason','paper'
+  ];
+  const csvEscape = v => {
+    if(v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const rows = [headers.join(',')];
+  filtered.forEach(t => {
+    rows.push(headers.map(h => {
+      let v = t[h];
+      if(h === 'pnl_pct' && v != null) v = (v * 100).toFixed(3);
+      else if(typeof v === 'number') v = v.toFixed(4).replace(/\.?0+$/,'') || '0';
+      return csvEscape(v);
+    }).join(','));
+  });
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  a.href     = url;
+  a.download = `kalshi_trades_${ts}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+loadData();
+setInterval(loadData, 10000); // refresh every 10s
+</script>
+</body>
+</html>

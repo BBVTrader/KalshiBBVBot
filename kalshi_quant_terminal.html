@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KALSHI · 8F TERMINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #05080b;
+  --bg2:     #090d12;
+  --panel:   #0b1018;
+  --border:  #151e28;
+  --border2: #1e2d3d;
+  --text:    #bccdd8;
+  --muted:   #3d5468;
+  --accent:  #17c3e8;
+  --green:   #00e57a;
+  --red:     #ff3d5a;
+  --amber:   #ffb830;
+  --purple:  #9b7fff;
+  --mono:    'IBM Plex Mono', monospace;
+  --sans:    'IBM Plex Sans', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:13px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(23,195,232,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(23,195,232,.016) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0
+}
+.hdr{
+  position:sticky;top:0;z-index:200;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  padding:14px 24px;gap:16px
+}
+.logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);letter-spacing:2.5px;justify-self:start}
+.logo em{color:var(--muted);font-style:normal}
+.hdr-r{display:flex;align-items:center;gap:18px;justify-self:end}
+.mainnav{display:flex;align-items:center;gap:8px;justify-self:center}
+.mainnav a{
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:2px;
+  color:var(--muted);text-decoration:none;
+  padding:10px 22px;border:1px solid var(--border);background:transparent;
+  transition:.15s all;cursor:pointer;
+}
+.mainnav a:hover{color:var(--text);border-color:var(--border2);background:var(--panel)}
+.mainnav a.active{color:var(--accent);border-color:var(--accent);background:rgba(23,195,232,.08)}
+.mainnav a.active::before{content:'● ';color:var(--accent);font-size:10px}
+.pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--green)}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s ease-in-out infinite}
+.pill.warn{color:var(--amber)}
+.pill.err{color:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#clk{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px}
+.btn{background:transparent;border:1px solid var(--border2);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:6px 14px;cursor:pointer;transition:.15s all}
+.btn:hover{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.main{position:relative;z-index:1;padding:20px 24px;display:flex;flex-direction:column;gap:18px}
+
+.fg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.fc{background:var(--panel);border:1px solid var(--border);padding:12px 14px;position:relative;overflow:hidden;transition:.2s border-color}
+.fc:hover{border-color:var(--border2)}
+.fc-top{position:absolute;top:0;left:0;right:0;height:2px}
+.fc-n{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:20px;font-weight:600;opacity:.07;line-height:1}
+.fc-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:3px}
+.fc-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px}
+.fc-desc{font-size:10px;color:var(--muted);line-height:1.5}
+.fc-wt{margin-top:8px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--muted)}
+.fc-wb{height:2px;background:var(--border2);flex:1;border-radius:1px;overflow:hidden}
+.fc-wf{height:100%;border-radius:1px}
+
+.ctrl{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.fbg{display:flex;gap:4px}
+.fb{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:.12s all;text-transform:uppercase}
+.fb.on{border-color:var(--accent);color:var(--accent);background:rgba(23,195,232,.06)}
+.fb:hover:not(.on){color:var(--text);border-color:var(--border2)}
+.thrw{display:flex;align-items:center;gap:8px;margin-left:auto}
+.thrv{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:22px;text-align:right}
+input[type=range]{-webkit-appearance:none;height:2px;background:var(--border2);width:88px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+
+.tw{background:var(--panel);border:1px solid var(--border);overflow:auto}
+.th2{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.tt{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--accent)}
+.tc{font-family:var(--mono);font-size:9px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--border)}
+th{
+  font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:9px 10px;
+  cursor:pointer;user-select:none;white-space:nowrap;
+  position:relative;overflow:visible;
+}
+th:hover{color:var(--text)}
+th.sa::after{content:' ↑';color:var(--accent)}
+th.sd::after{content:' ↓';color:var(--accent)}
+
+.rz{position:absolute;right:-3px;top:0;bottom:0;width:7px;cursor:col-resize;background:transparent;z-index:20}
+.rz:hover,.rz.active{background:var(--accent);opacity:.6;border-radius:2px}
+
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:.1s background}
+tbody tr:hover{background:rgba(23,195,232,.025)}
+tbody tr.sel{background:rgba(23,195,232,.05)}
+td{padding:9px 10px;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mn{overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:500;color:var(--text)}
+.ms{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.5px;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.sb{display:flex;align-items:center;gap:5px}
+.sb-bg{width:40px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden;flex-shrink:0}
+.sb-f{height:100%;border-radius:2px;transition:width .5s}
+.sb-v{font-family:var(--mono);font-size:10px;min-width:20px;text-align:right}
+.sh .sb-f{background:var(--green)}.sh .sb-v{color:var(--green)}
+.sm .sb-f{background:var(--amber)}.sm .sb-v{color:var(--amber)}
+.sl .sb-f{background:var(--red)}  .sl .sb-v{color:var(--red)}
+.comp{font-family:var(--mono);font-size:14px;font-weight:600}
+.comp.A{color:var(--green)}.comp.B{color:#4de89a}.comp.C{color:var(--amber)}.comp.D{color:#ff8060}.comp.F{color:var(--red)}
+.badge{display:inline-block;padding:2px 6px;font-family:var(--mono);font-size:8px;letter-spacing:1px;border-radius:2px}
+.badge.A{background:rgba(0,229,122,.1);color:var(--green);border:1px solid rgba(0,229,122,.2)}
+.badge.B{background:rgba(77,232,154,.1);color:#4de89a;border:1px solid rgba(77,232,154,.18)}
+.badge.C{background:rgba(255,184,48,.1);color:var(--amber);border:1px solid rgba(255,184,48,.2)}
+.badge.D{background:rgba(255,128,96,.1);color:#ff8060;border:1px solid rgba(255,128,96,.2)}
+.badge.F{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2)}
+.sig{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 7px;border-radius:2px}
+.sig.LONG{background:rgba(0,229,122,.1);color:var(--green);border:1px solid rgba(0,229,122,.2)}
+.sig.SHORT{background:rgba(255,61,90,.1);color:var(--red);border:1px solid rgba(255,61,90,.2)}
+.sig.HOLD{background:rgba(61,84,104,.2);color:var(--muted);border:1px solid var(--border2)}
+.pc{font-family:var(--mono);font-size:11px;color:var(--text)}
+.vc{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.ttrd{font-family:var(--mono);font-size:10px}
+.ttrd.hot{color:var(--red)}.ttrd.warm{color:var(--amber)}.ttrd.ok{color:var(--green)}.ttrd.cold{color:var(--muted)}
+
+.dr{display:none}
+.dr.open{display:table-row}
+.di{padding:0;background:var(--bg2);border-top:1px solid var(--border)}
+.db{padding:13px 15px;display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.df{background:var(--panel);border:1px solid var(--border);padding:10px 12px}
+.dfl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:4px}
+.dfv{font-family:var(--mono);font-size:19px;font-weight:600;margin-bottom:3px;line-height:1}
+.dfr{font-size:10px;color:var(--muted);line-height:1.5}
+
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.stat{background:var(--panel);border:1px solid var(--border);padding:11px 13px}
+.sl2{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
+.sv{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text)}
+.sv.up{color:var(--green)}.sv.dn{color:var(--red)}.sv.w{color:var(--amber)}
+.ss{font-size:9px;color:var(--muted);margin-top:2px}
+
+.sk{background:linear-gradient(90deg,var(--border) 25%,var(--border2) 50%,var(--border) 75%);background-size:200% 100%;animation:shim 1.4s infinite;border-radius:2px;height:8px}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.nr{padding:48px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:2px}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+@media(max-width:960px){.fg{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(3,1fr)}.db{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">KALSHI<em> / </em>8F<em> · </em>QUANT TERMINAL</div>
+  <nav class="mainnav">
+    <a href="/" class="active">SCANNER</a>
+    <a href="/dashboard">TRADER</a>
+    <a href="/tradelog">TRADE LOG</a>
+  </nav>
+  <div class="hdr-r">
+    <div class="pill warn" id="pill">CONNECTING</div>
+    <div id="clk">--:--:--</div>
+    <button class="btn" onclick="refresh()">↻ REFRESH</button>
+  </div>
+</div>
+
+<div class="main">
+
+<div class="fg" id="fg"></div>
+
+<div class="ctrl">
+  <span class="cl">Cat:</span>
+  <div class="fbg" id="catG">
+    <button class="fb on" data-v="ALL"      onclick="setCat(this)">ALL</button>
+    <button class="fb"    data-v="POLITICS" onclick="setCat(this)">POL</button>
+    <button class="fb"    data-v="CRYPTO"   onclick="setCat(this)">CRYPTO</button>
+    <button class="fb"    data-v="ECON"     onclick="setCat(this)">ECON</button>
+    <button class="fb"    data-v="SPORTS"   onclick="setCat(this)">SPORTS</button>
+  </div>
+  <span class="cl" style="margin-left:6px">Signal:</span>
+  <div class="fbg" id="sigG">
+    <button class="fb on" data-v="ALL"   onclick="setSig(this)">ALL</button>
+    <button class="fb"    data-v="LONG"  onclick="setSig(this)">LONG</button>
+    <button class="fb"    data-v="SHORT" onclick="setSig(this)">SHORT</button>
+  </div>
+  <div class="thrw">
+    <span class="cl">Min score:</span>
+    <input type="range" min="0" max="100" value="0" id="thr" oninput="onThr(this.value)">
+    <span class="thrv" id="thrv">0</span>
+  </div>
+</div>
+
+<div class="tw">
+  <div class="th2">
+    <span class="tt" id="tt-label">MARKET SCANNER — 8 FACTORS · SINGLE EVENTS ONLY</span>
+    <span class="tc" id="mc">— MARKETS</span>
+  </div>
+  <table id="main-table">
+    <thead><tr id="thead-row">
+      <th style="width:220px" onclick="srt('title')">Market<div class="rz"></div></th>
+      <th style="width:70px">Kalshi<div class="rz"></div></th>
+      <th style="width:60px" onclick="srt('price')">YES<div class="rz"></div></th>
+      <th style="width:60px" onclick="srt('volume')">Vol<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('ofi')"         title="Order Flow Imbalance">OFI·F1<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('smart')"       title="Smart Money">Smart·F2<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('momentum')"    title="Price Momentum">Mom·F3<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('liquidity')"   title="Liquidity Health">Liq·F4<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('ttr')"         title="Time-to-Resolution">TTR·F5<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('volvelo')"     title="Volume Velocity">VVel·F6<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('calibration')" title="Calibration Error">CalErr·F7<div class="rz"></div></th>
+      <th style="width:70px" onclick="srt('meanrev')"     title="Mean Reversion Dist">MRev·F8<div class="rz"></div></th>
+      <th style="width:80px" onclick="srt('composite')">Score<div class="rz"></div></th>
+      <th style="width:70px">Signal<div class="rz"></div></th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+  <div class="nr" id="nr" style="display:none">NO MARKETS MATCH FILTERS</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="sl2">Markets</div><div class="sv" id="s0">—</div><div class="ss">single events</div></div>
+  <div class="stat"><div class="sl2">Long signals</div><div class="sv up" id="s1">—</div><div class="ss" id="s1l">—</div></div>
+  <div class="stat"><div class="sl2">Short signals</div><div class="sv dn" id="s2">—</div><div class="ss" id="s2l">—</div></div>
+  <div class="stat"><div class="sl2">Avg TTR score</div><div class="sv w" id="s3">—</div><div class="ss">timing quality</div></div>
+  <div class="stat"><div class="sl2">Mispriced</div><div class="sv w" id="s4">—</div><div class="ss">CalErr ≥ 70</div></div>
+  <div class="stat"><div class="sl2">Last refresh</div><div class="sv" id="s5" style="font-size:10px">—</div><div class="ss">v1.8 · server</div></div>
+</div>
+
+</div>
+
+<script>
+// v1.8: NO client-side factor calc. All factors come from /api/markets (server).
+// Scanner is a pure renderer. Server is the brain.
+
+const FACTORS = [
+  {key:'ofi',         lbl:'F1', name:'Order flow imbalance',  wt:0.20, color:'#17c3e8', desc:'Buy vs sell pressure over 15-min window. Strongest short-term predictor in thin markets.'},
+  {key:'smart',       lbl:'F2', name:'Smart money signal',    wt:0.20, color:'#00e57a', desc:'Net positioning of high-P&L wallets. Informed traders express conviction through size.'},
+  {key:'momentum',    lbl:'F3', name:'Price momentum',        wt:0.12, color:'#ffb830', desc:'Short-term drift vs mean reversion. Continuation in mid-range; reversal risk at tails.'},
+  {key:'liquidity',   lbl:'F4', name:'Liquidity health',      wt:0.08, color:'#ff3d5a', desc:'Bid-ask spread health. Wide spread eats your edge on entry AND exit — avoid thin markets.'},
+  {key:'ttr',         lbl:'F5', name:'Time-to-resolution',    wt:0.18, color:'#9b7fff', desc:'Days until close, scored for urgency. Sweet spot: 3-21 days. Too far out = dead capital.'},
+  {key:'volvelo',     lbl:'F6', name:'Volume velocity',       wt:0.10, color:'#ff9040', desc:'Volume acceleration vs 7-day baseline. Sudden spikes signal new information arriving.'},
+  {key:'calibration', lbl:'F7', name:'Calibration error',     wt:0.08, color:'#40d8ff', desc:'Divergence vs implied external probability. High score = potential mispricing edge.'},
+  {key:'meanrev',     lbl:'F8', name:'Mean reversion dist',   wt:0.04, color:'#b090ff', desc:'Distance from 7-day price anchor. Stretched prices signal snap-back risk — lower score.'},
+];
+
+let all=[], filtered=[], catF='ALL', sigF='ALL', scoreMin=0, sortK='composite', sortD='desc';
+let serverConfig=null;
+
+setInterval(()=>{document.getElementById('clk').textContent=new Date().toLocaleTimeString('en-US',{hour12:false})},1000);
+
+function buildFG(){
+  document.getElementById('fg').innerHTML=FACTORS.map(f=>`
+    <div class="fc">
+      <div class="fc-top" style="background:${f.color}"></div>
+      <div class="fc-n">${f.lbl}</div>
+      <div class="fc-tag">${f.lbl} &middot; ${Math.round(f.wt*100)}%</div>
+      <div class="fc-name">${f.name}</div>
+      <div class="fc-desc">${f.desc}</div>
+      <div class="fc-wt">
+        <span>${Math.round(f.wt*100)}%</span>
+        <div class="fc-wb"><div class="fc-wf" style="width:${f.wt*100*3.3}%;background:${f.color}"></div></div>
+      </div>
+    </div>`).join('');
+}
+
+function initResize(){
+  const ths = document.querySelectorAll('#thead-row th');
+  ths.forEach(th=>{
+    const rz = th.querySelector('.rz');
+    if(!rz) return;
+    let startX, startW;
+    rz.addEventListener('mousedown', e=>{
+      e.stopPropagation();
+      startX = e.pageX;
+      startW = th.offsetWidth;
+      rz.classList.add('active');
+      document.body.style.cursor='col-resize';
+      document.body.style.userSelect='none';
+      const onMove = e=>{
+        const w = Math.max(40, startW + e.pageX - startX);
+        th.style.width = w+'px';
+      };
+      const onUp = ()=>{
+        rz.classList.remove('active');
+        document.body.style.cursor='';
+        document.body.style.userSelect='';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+    rz.addEventListener('dblclick', e=>{
+      e.stopPropagation();
+      th.style.width='auto';
+    });
+  });
+}
+
+async function fetchFromServer(){
+  // The brain lives on the server. We just consume.
+  const r = await fetch('/api/markets', {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return await r.json();
+}
+
+function scC(s){return s>=65?'sh':s>=40?'sm':'sl'}
+function grade(c){if(c>=76)return'A';if(c>=65)return'B';if(c>=50)return'C';if(c>=38)return'D';return'F'}
+function fvol(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$'+Math.round(v)}
+function fdays(d){if(d<1)return'<1d';if(d<7)return Math.round(d)+'d';if(d<60)return Math.round(d/7)+'w';return Math.round(d/30)+'mo'}
+function ttrCls(d){if(d<1)return'cold';if(d<=21)return'hot';if(d<=60)return'warm';return'cold'}
+function sbar(s){const c=scC(s);return`<div class="sb ${c}"><div class="sb-bg"><div class="sb-f" style="width:${s}%"></div></div><span class="sb-v">${s}</span></div>`}
+
+function detRow(m,f,i){
+  const rows=[
+    ['Order flow imbalance',f.ofi,'#17c3e8',f.ofi>65?'Elevated — buy-side takers dominating':f.ofi>40?'Neutral — balanced flow':'Weak — sell pressure dominant'],
+    ['Smart money',f.smart,'#00e57a',f.smart>60?'Net long — high-P&L wallets accumulating':f.smart>40?'Mixed — no consensus':'Net short — informed money reducing exposure'],
+    ['Price momentum',f.momentum,'#ffb830',f.momentum>60?'Continuation — trend likely':f.momentum>40?'Neutral':'Reversal risk — price may snap toward 50¢'],
+    ['Liquidity health',f.liquidity,'#ff3d5a',f.liquidity>60?'Tight spread — safe to trade':f.liquidity>40?'Moderate — small orders ok':'Wide — edge gets eaten on fill'],
+    ['Time-to-resolution',f.ttr,'#9b7fff',`${fdays(f.days)} remaining · ${f.ttr>70?'optimal window':f.ttr>45?'acceptable':'poor timing'}`],
+    ['Volume velocity',f.volvelo,'#ff9040',f.volvelo>65?'Volume spike — new information arriving':f.volvelo>40?'Steady — normal activity':'Dormant — stale market'],
+    ['Calibration error',f.calibration,'#40d8ff',f.calibration>65?'High divergence — potential mispricing vs external refs':f.calibration>40?'Moderate gap':'Well-calibrated — aligned with external refs'],
+    ['Mean reversion dist',f.meanrev,'#b090ff',f.meanrev>65?'Near anchor — no stretch risk':f.meanrev>40?'Mild stretch':'Stretched from 7d mean — snap-back risk elevated'],
+  ];
+  return`<tr class="dr" id="dr-${i}">
+    <td colspan="14" class="di">
+      <div class="db">${rows.map(([l,v,c,r])=>`
+        <div class="df">
+          <div class="dfl">${l}</div>
+          <div class="dfv" style="color:${c}">${v}<span style="font-size:10px;color:var(--muted)">/100</span></div>
+          <div class="dfr">${r}</div>
+        </div>`).join('')}
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderTable(){
+  const tb=document.getElementById('tb');
+  const nr=document.getElementById('nr');
+  filtered=all.filter(m=>{
+    if(catF!=='ALL'&&m.category!==catF) return false;
+    if(sigF!=='ALL'&&m.factors.signal!==sigF) return false;
+    if(m.factors.composite<scoreMin) return false;
+    return true;
+  });
+  filtered.sort((a,b)=>{
+    let va,vb;
+    if(sortK==='title'){va=a.title;vb=b.title;}
+    else if(sortK==='price'){va=a.yes_ask;vb=b.yes_ask;}
+    else if(sortK==='volume'){va=a.volume;vb=b.volume;}
+    else{va=a.factors[sortK];vb=b.factors[sortK];}
+    if(typeof va==='string') return sortD==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+    return sortD==='asc'?va-vb:vb-va;
+  });
+  document.getElementById('mc').textContent=`${filtered.length} MARKETS`;
+  if(!filtered.length){tb.innerHTML='';nr.style.display='block';return}
+  nr.style.display='none';
+  tb.innerHTML=filtered.map((m,i)=>{
+    const f=m.factors,g=grade(f.composite),p=m.yes_ask;
+    return`<tr onclick="togDet(${i})" id="row-${i}">
+      <td><div class="mn">${m.title}</div><div class="ms">${m.ticker} · ${m.category}</div></td>
+      <td onclick="event.stopPropagation()"><a href="https://kalshi.com/markets/${m.ticker.split('-')[0].toLowerCase()}/market/${m.ticker}" target="_blank" style="font-family:var(--mono);font-size:9px;padding:3px 8px;border:1px solid rgba(23,195,232,.3);color:var(--accent);text-decoration:none;border-radius:2px;white-space:nowrap" onmouseover="this.style.background='rgba(23,195,232,.1)'" onmouseout="this.style.background='transparent'">VIEW ↗</a></td>
+      <td class="pc">${(p*100).toFixed(1)}¢</td>
+      <td class="vc">${fvol(m.volume)}</td>
+      <td>${sbar(f.ofi)}</td>
+      <td>${sbar(f.smart)}</td>
+      <td>${sbar(f.momentum)}</td>
+      <td>${sbar(f.liquidity)}</td>
+      <td><div class="sb ${scC(f.ttr)}">
+        <div class="sb-bg"><div class="sb-f" style="width:${f.ttr}%"></div></div>
+        <span class="ttrd ${ttrCls(f.days)}">${fdays(f.days)}</span>
+      </div></td>
+      <td>${sbar(f.volvelo)}</td>
+      <td>${sbar(f.calibration)}</td>
+      <td>${sbar(f.meanrev)}</td>
+      <td><span class="comp ${g}">${f.composite}</span><span class="badge ${g}" style="margin-left:5px">${g}</span></td>
+      <td><span class="sig ${f.signal}">${f.signal}</span></td>
+    </tr>${detRow(m,f,i)}`;
+  }).join('');
+  updateStats();
+}
+
+function togDet(i){
+  const dr=document.getElementById(`dr-${i}`),row=document.getElementById(`row-${i}`);
+  if(!dr) return;
+  const was=dr.classList.contains('open');
+  document.querySelectorAll('.dr.open').forEach(r=>r.classList.remove('open'));
+  document.querySelectorAll('tbody tr.sel').forEach(r=>r.classList.remove('sel'));
+  if(!was){dr.classList.add('open');row.classList.add('sel')}
+}
+
+function updateStats(){
+  document.getElementById('s0').textContent=all.length;
+  document.getElementById('s1').textContent=all.filter(m=>m.factors.signal==='LONG').length;
+  document.getElementById('s2').textContent=all.filter(m=>m.factors.signal==='SHORT').length;
+  document.getElementById('s3').textContent=all.length?Math.round(all.reduce((s,m)=>s+m.factors.ttr,0)/all.length):0;
+  document.getElementById('s4').textContent=all.filter(m=>m.factors.calibration>=70).length;
+  document.getElementById('s5').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
+  if(serverConfig){
+    document.getElementById('s1l').textContent=`composite ≥ ${serverConfig.min_composite}`;
+    document.getElementById('s2l').textContent=`composite ≤ ${100-serverConfig.min_composite}`;
+  }
+}
+
+function showSkel(){
+  document.getElementById('tb').innerHTML=Array(8).fill(0).map(()=>`
+    <tr><td><div class="sk" style="width:190px;margin-bottom:4px"></div><div class="sk" style="width:80px;height:7px"></div></td>
+    ${Array(12).fill('<td><div class="sk" style="width:44px"></div></td>').join('')}</tr>`).join('');
+  document.getElementById('nr').style.display='none';
+}
+
+async function refresh(){
+  showSkel();
+  const pill=document.getElementById('pill');
+  pill.textContent='FETCHING…';pill.className='pill warn';
+  try{
+    const data = await fetchFromServer();
+    all = data.markets || [];
+    serverConfig = data.config || null;
+    pill.textContent='LIVE · v1.8';pill.className='pill';
+  }catch(e){
+    console.error('Fetch failed:',e);
+    all=[];
+    pill.textContent='SERVER UNREACHABLE';pill.className='pill err';
+  }
+  renderTable();
+}
+
+function setCat(btn){document.querySelectorAll('#catG .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');catF=btn.dataset.v;renderTable()}
+function setSig(btn){document.querySelectorAll('#sigG .fb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');sigF=btn.dataset.v;renderTable()}
+function onThr(v){scoreMin=parseInt(v);document.getElementById('thrv').textContent=v;renderTable()}
+function srt(k){
+  if(sortK===k)sortD=sortD==='desc'?'asc':'desc';else{sortK=k;sortD='desc'}
+  document.querySelectorAll('th').forEach(th=>{
+    th.classList.remove('sa','sd');
+    if(th.getAttribute('onclick')===`srt('${k}')`) th.classList.add(sortD==='asc'?'sa':'sd');
+  });
+  renderTable();
+}
+
+buildFG();
+refresh();
+initResize();
+setInterval(refresh,60000);
+</script>
+</body>
+</html>
