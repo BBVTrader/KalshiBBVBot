@@ -88,7 +88,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 PORT        = int(os.getenv("PORT", "8765"))
-KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2"
+KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2"
 HERE        = Path(__file__).parent
 API_KEY     = os.getenv("KALSHI_API_KEY", "")
 API_SECRET  = os.getenv("KALSHI_API_SECRET", "")
