@@ -222,8 +222,8 @@ class Config:
     THIN_CAPITAL_PCT:  float = 0.20  # max 20% of capital in thin-book
     THIN_SIZE_PCT_OF_VOLUME: float = 0.05  # max 5% of contract volume per pos
 
-    LOG_FILE:  str = "kalshi_trader.log"
-    TRADE_LOG: str = "trades.json"
+    LOG_FILE:  str = "/data/kalshi_trader.log"
+    TRADE_LOG: str = "/data/trades.json"
 
 
 CFG = Config()
