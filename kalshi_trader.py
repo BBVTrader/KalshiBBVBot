@@ -278,7 +278,7 @@ def _rsa_sign(method: str, path: str) -> dict:
         from cryptography.hazmat.primitives.asymmetric import padding
         from cryptography.hazmat.backends import default_backend
 
-        pem_bytes   = _normalize_pem(CFG.API_SECRET)
+        pem_bytes   = open("/etc/secrets/kalshi_key.pem","rb").read()
         private_key = serialization.load_pem_private_key(
             pem_bytes, password=None, backend=default_backend()
         )
