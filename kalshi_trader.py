@@ -174,7 +174,7 @@ class Config:
 
     API_KEY:    str = os.getenv("KALSHI_API_KEY", "")
     API_SECRET: str = os.getenv("KALSHI_API_SECRET", "")
-    KALSHI_BASE: str = "https://external-api.kalshi.com/trade-api/v2"
+    KALSHI_BASE: str = "https://api.kalshi.com/trade-api/v2"
 
     # Scanner is the brain — trader polls it for signals
     SCANNER_URL: str = os.getenv("SCANNER_URL", "https://kalshi-trader-1.onrender.com")
