@@ -275,7 +275,40 @@ def _rsa_sign(method: str, path: str) -> dict:
         import os as _os
         _key_file = "/etc/secrets/kalshi_key.pem"
         if _os.path.exists(_key_file):
-            pem_bytes = open(_key_file, "rb").read()
+            raw_key = open(_key_file).read().replace('\\n', '\n')
+            pem_bytes = raw_key.encode()
+        else:
+            raw = CFG.API_SECRET
+            # Render stores env vars with literal 
+ - convert to real newlines
+            raw = raw.replace('\n', '
+')
+            if '
+' not in raw and 'BEGIN' in raw:
+                pass  # already has real newlines
+            pem_bytes = raw.encode()
+        private_key = serialization.load_pem_private_key(pem_bytes, password=None)
+        sig = private_key.sign(
+            msg.encode(),
+            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32),
+            hashes.SHA256()
+        )
+        headers.update({
+            "KALSHI-ACCESS-KEY": CFG.API_KEY,
+            "KALSHI-ACCESS-TIMESTAMP": ts,
+            "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
+        })
+    except Exception as e:
+        log.warning("RSA signing failed: %s", e)
+    return headers
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        import os as _os
+        _key_file = "/etc/secrets/kalshi_key.pem"
+        if _os.path.exists(_key_file):
+            raw_key = open(_key_file).read().replace('\\n', '\n')
+            pem_bytes = raw_key.encode()
         else:
             raw = CFG.API_SECRET
             # Render stores env vars with literal 
@@ -310,7 +343,8 @@ def _rsa_sign(method: str, path: str) -> dict:
         import os as _os
         _key_file = "/etc/secrets/kalshi_key.pem"
         if _os.path.exists(_key_file):
-            pem_bytes = open(_key_file, "rb").read()
+            raw_key = open(_key_file).read().replace('\\n', '\n')
+            pem_bytes = raw_key.encode()
         else:
             raw = CFG.API_SECRET.replace("\n", "
 ")
