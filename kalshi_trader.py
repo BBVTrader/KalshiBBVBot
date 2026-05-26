@@ -703,7 +703,21 @@ class RiskManager:
         self.last_vol24h: dict[str, float] = {}
         self.skip_counts: dict[str, int] = {}
         self.last_trade_time: float = 0.0
+        # Restore cooldown from disk
+        try:
+            import json as _json
+            saved = _json.loads(open('/data/last_trade_time.json').read())
+            self.last_trade_time = saved.get('ts', 0.0)
+        except Exception:
+            pass
         self.last_trade_time: float = 0.0
+        # Restore cooldown from disk
+        try:
+            import json as _json
+            saved = _json.loads(open('/data/last_trade_time.json').read())
+            self.last_trade_time = saved.get('ts', 0.0)
+        except Exception:
+            pass
 
     def thin_book_used_usd(self) -> float:
         return sum(p.size_usd for p in self.open.values() if p.path == "THIN")
@@ -1096,7 +1110,19 @@ def run():
                 )
                 risk.open_position(pos)
                 risk.last_trade_time = time.time()
+                # Persist cooldown to disk
+                try:
+                    import json as _json
+                    open('/data/last_trade_time.json','w').write(_json.dumps({'ts': risk.last_trade_time}))
+                except Exception:
+                    pass
                 risk.last_trade_time = time.time()
+                # Persist cooldown to disk
+                try:
+                    import json as _json
+                    open('/data/last_trade_time.json','w').write(_json.dumps({'ts': risk.last_trade_time}))
+                except Exception:
+                    pass
                 print_trade(sig, pos)
                 log_trade("open", {
                     "ticker": sig.ticker, "direction": sig.direction,
