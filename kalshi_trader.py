@@ -313,6 +313,20 @@ def _rsa_sign(method: str, path: str) -> dict:
     except Exception as e:
         log.warning("RSA signing failed: %s", e)
     return headers
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        import os as _os
+        kf = "/etc/secrets/kalshi_key.pem"
+        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
+        raw = raw.replace("\n", chr(10))
+        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
+        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
+        import base64 as _b64
+        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
+    except Exception as e:
+        log.warning("RSA signing failed: %s", e)
+    return headers
 
     try:
         from cryptography.hazmat.primitives import hashes, serialization
