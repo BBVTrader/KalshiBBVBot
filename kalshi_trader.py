@@ -193,6 +193,8 @@ class Config:
     MAX_OPEN:       int   = PAPER_MAX_OPEN
     MAX_DAILY_LOSS: float = PAPER_MAX_DAILY_LOSS
     SCAN_INTERVAL:  int   = 60
+    TRADE_COOLDOWN_SECONDS: int = 1800  # 30 min between trades
+    TRADE_COOLDOWN_SECONDS: int = 1800  # 30 min between trades
 
     ORPHAN_TIMEOUT_HOURS: float = 36.0
 
@@ -269,6 +271,20 @@ def _rsa_sign(method: str, path: str) -> dict:
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if not CFG.API_KEY:
         return headers
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        import os as _os
+        kf = "/etc/secrets/kalshi_key.pem"
+        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
+        raw = raw.replace("\n", chr(10))
+        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
+        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
+        import base64 as _b64
+        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
+    except Exception as e:
+        log.warning("RSA signing failed: %s", e)
+    return headers
     try:
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
@@ -672,6 +688,8 @@ class RiskManager:
         self.last_marks: dict[str, float] = {}
         self.last_vol24h: dict[str, float] = {}
         self.skip_counts: dict[str, int] = {}
+        self.last_trade_time: float = 0.0
+        self.last_trade_time: float = 0.0
 
     def thin_book_used_usd(self) -> float:
         return sum(p.size_usd for p in self.open.values() if p.path == "THIN")
@@ -686,6 +704,12 @@ class RiskManager:
             return False, f"Max open positions ({CFG.MAX_OPEN}) reached"
         if sig.ticker in self.open:
             return False, f"Already have position in {sig.ticker}"
+        cooldown_remaining = CFG.TRADE_COOLDOWN_SECONDS - (time.time() - self.last_trade_time)
+        if cooldown_remaining > 0:
+            return False, f"Cooldown: {int(cooldown_remaining)}s remaining"
+        cooldown_remaining = CFG.TRADE_COOLDOWN_SECONDS - (time.time() - self.last_trade_time)
+        if cooldown_remaining > 0:
+            return False, f"Cooldown: {int(cooldown_remaining)}s remaining"
         # v2.3: with FLAT_POSITION_USD=$25, this check is effectively dead
         # but kept as a safety net in case someone reverts FLAT and forgets
         # to restore Kelly. Min is $5 (PAPER) so $25 always passes.
@@ -1018,7 +1042,7 @@ def run():
                  "executed" if ENABLE_THIN_EXECUTION else "blocked",
                  skip_count_this_cycle)
 
-        sized_signals = liquid_signals  # v2.3: LIQUID-only execution
+        sized_signals = liquid_signals[:1]  # Max 1 trade per cycle, highest score
 
         if sized_signals:
             log.info("Top %d signals:", min(5, len(sized_signals)))
@@ -1053,6 +1077,8 @@ def run():
                     entry_volume_24h=sig.volume_24h,
                 )
                 risk.open_position(pos)
+                risk.last_trade_time = time.time()
+                risk.last_trade_time = time.time()
                 print_trade(sig, pos)
                 log_trade("open", {
                     "ticker": sig.ticker, "direction": sig.direction,
