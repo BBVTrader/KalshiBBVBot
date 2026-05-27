@@ -161,7 +161,7 @@ PAPER_MAX_DAILY_LOSS    = 5_000.0   # LIVE: 300.0
 # v2.3 MEASUREMENT MODE — flat sizing, LIQUID-only execution
 # =============================================================================
 
-FLAT_POSITION_USD     = float(os.getenv("FLAT_POSITION_USD", "25.0"))   # Every trade is this size. No exceptions.
+FLAT_POSITION_USD     = 25.0   # Every trade is this size. No exceptions.
 ENABLE_THIN_EXECUTION = False  # If False, THIN signals are routed but skipped
 
 # =============================================================================
@@ -170,11 +170,11 @@ ENABLE_THIN_EXECUTION = False  # If False, THIN signals are routed but skipped
 
 @dataclass
 class Config:
-    PAPER_TRADE: bool = os.getenv("PAPER_TRADE","True").lower() not in ("false","0","no")
+    PAPER_TRADE: bool = True
 
     API_KEY:    str = os.getenv("KALSHI_API_KEY", "")
     API_SECRET: str = os.getenv("KALSHI_API_SECRET", "")
-    KALSHI_BASE: str = "https://api.elections.kalshi.com/trade-api/v2"
+    KALSHI_BASE: str = "https://external-api.kalshi.com/trade-api/v2"
 
     # Scanner is the brain — trader polls it for signals
     SCANNER_URL: str = os.getenv("SCANNER_URL", "https://kalshi-trader-1.onrender.com")
@@ -193,8 +193,6 @@ class Config:
     MAX_OPEN:       int   = PAPER_MAX_OPEN
     MAX_DAILY_LOSS: float = PAPER_MAX_DAILY_LOSS
     SCAN_INTERVAL:  int   = 60
-    TRADE_COOLDOWN_SECONDS: int = 1800  # 30 min between trades
-    TRADE_COOLDOWN_SECONDS: int = 1800  # 30 min between trades
 
     ORPHAN_TIMEOUT_HOURS: float = 36.0
 
@@ -222,8 +220,8 @@ class Config:
     THIN_CAPITAL_PCT:  float = 0.20  # max 20% of capital in thin-book
     THIN_SIZE_PCT_OF_VOLUME: float = 0.05  # max 5% of contract volume per pos
 
-    LOG_FILE:  str = "/data/kalshi_trader.log"
-    TRADE_LOG: str = "/data/trades.json"
+    LOG_FILE:  str = "kalshi_trader.log"
+    TRADE_LOG: str = "trades.json"
 
 
 CFG = Config()
@@ -266,95 +264,14 @@ def _normalize_pem(raw: str) -> bytes:
 
 
 def _rsa_sign(method: str, path: str) -> dict:
-    ts = str(int(time.time() * 1000))
+    """Sign a request with RSA-SHA256 using the PEM private key."""
+    ts  = str(int(time.time() * 1000))
     msg = ts + method.upper() + path
+
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
-    if not CFG.API_KEY:
+
+    if not CFG.API_KEY or not CFG.API_SECRET:
         return headers
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
 
     try:
         from cryptography.hazmat.primitives import hashes, serialization
@@ -369,7 +286,7 @@ def _rsa_sign(method: str, path: str) -> dict:
             msg.encode(),
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=32
+                salt_length=padding.PSS.DIGEST_LENGTH
             ),
             hashes.SHA256()
         )
@@ -389,23 +306,6 @@ def _rsa_sign(method: str, path: str) -> dict:
 def _public_headers() -> dict:
     """Headers for unauthenticated public Kalshi reads (markets endpoint)."""
     return {"Content-Type": "application/json", "Accept": "application/json"}
-
-def fetch_kalshi_balance() -> float:
-    """Fetch real account balance from Kalshi API."""
-    try:
-        path = "/trade-api/v2/portfolio/balance"
-        headers = _rsa_sign("GET", path)
-        req = urllib.request.Request(CFG.KALSHI_BASE + "/portfolio/balance", headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read())
-        # balance is in cents
-        bal = data.get("balance", 0)
-        return float(bal) / 100.0
-    except Exception as e:
-        log.debug("Balance fetch failed: %s", e)
-        return CFG.TOTAL_CAPITAL
-
-
 
 
 # -----------------------------------------------------------------------------
@@ -702,7 +602,7 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
                  ticker, side.upper(), contracts, price_cents, oid)
         return {"order_id": oid, "status": "paper_filled", "paper": True}
 
-    path      = "/trade-api/v2/portfolio/orders"
+    path      = "/trade-api/v2/orders"
     price_key = "yes_price" if side == "yes" else "no_price"
     body      = json.dumps({
         "ticker": ticker, "side": side, "type": "limit",
@@ -710,14 +610,10 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
     }).encode()
     headers = _rsa_sign("POST", path)
     req = urllib.request.Request(
-        CFG.KALSHI_BASE + "/portfolio/orders", data=body, headers=headers, method="POST")
+        CFG.KALSHI_BASE + "/orders", data=body, headers=headers, method="POST")
     try:
-        _t0 = time.time()
         with urllib.request.urlopen(req, timeout=10) as r:
-            result = json.loads(r.read())
-        _latency = (time.time() - _t0) * 1000
-        log.info("Order latency: %.0fms  ticker=%s", _latency, ticker)
-        return result
+            return json.loads(r.read())
     except urllib.error.HTTPError as e:
         log.error("Order rejected HTTP %s: %s", e.code, e.read())
         return {}
@@ -748,22 +644,6 @@ class RiskManager:
         self.last_marks: dict[str, float] = {}
         self.last_vol24h: dict[str, float] = {}
         self.skip_counts: dict[str, int] = {}
-        self.last_trade_time: float = 0.0
-        # Restore cooldown from disk
-        try:
-            import json as _json
-            saved = _json.loads(open('/data/last_trade_time.json').read())
-            self.last_trade_time = saved.get('ts', 0.0)
-        except Exception:
-            pass
-        self.last_trade_time: float = 0.0
-        # Restore cooldown from disk
-        try:
-            import json as _json
-            saved = _json.loads(open('/data/last_trade_time.json').read())
-            self.last_trade_time = saved.get('ts', 0.0)
-        except Exception:
-            pass
 
     def thin_book_used_usd(self) -> float:
         return sum(p.size_usd for p in self.open.values() if p.path == "THIN")
@@ -778,12 +658,6 @@ class RiskManager:
             return False, f"Max open positions ({CFG.MAX_OPEN}) reached"
         if sig.ticker in self.open:
             return False, f"Already have position in {sig.ticker}"
-        cooldown_remaining = CFG.TRADE_COOLDOWN_SECONDS - (time.time() - self.last_trade_time)
-        if cooldown_remaining > 0:
-            return False, f"Cooldown: {int(cooldown_remaining)}s remaining"
-        cooldown_remaining = CFG.TRADE_COOLDOWN_SECONDS - (time.time() - self.last_trade_time)
-        if cooldown_remaining > 0:
-            return False, f"Cooldown: {int(cooldown_remaining)}s remaining"
         # v2.3: with FLAT_POSITION_USD=$25, this check is effectively dead
         # but kept as a safety net in case someone reverts FLAT and forgets
         # to restore Kelly. Min is $5 (PAPER) so $25 always passes.
@@ -1026,18 +900,7 @@ def run():
 
     risk    = RiskManager()
     cycle   = 0
-    # Fetch real Kalshi balance
-    real_balance = fetch_kalshi_balance()
-    if real_balance > 0:
-        capital = real_balance
-        log.info("Real Kalshi balance: $%.2f", capital)
-    try:
-        _shared["capital"] = capital
-    except Exception:
-        pass
-    else:
-        capital = CFG.TOTAL_CAPITAL
-        log.info("Using config capital: $%.2f", capital)
+    capital = CFG.TOTAL_CAPITAL
 
     while True:
         cycle += 1
@@ -1046,7 +909,6 @@ def run():
         except NameError:
             pass
 
-        _cycle_start = time.time()
         log.info("-- Cycle %d  %s ------------------------------",
                  cycle, datetime.now().strftime("%H:%M:%S"))
 
@@ -1117,7 +979,7 @@ def run():
                  "executed" if ENABLE_THIN_EXECUTION else "blocked",
                  skip_count_this_cycle)
 
-        sized_signals = liquid_signals[:1]  # Max 1 trade per cycle, highest score
+        sized_signals = liquid_signals  # v2.3: LIQUID-only execution
 
         if sized_signals:
             log.info("Top %d signals:", min(5, len(sized_signals)))
@@ -1139,11 +1001,7 @@ def run():
             side        = "yes" if sig.direction == "LONG" else "no"
             price_cents = int(sig.price * 100)
             # v2.3: $25 / price = contracts. Cap at 1 minimum.
-            max_spend   = float(os.getenv("FLAT_POSITION_USD", "12.50"))
-            contracts   = max(1, int(max_spend / max(sig.price, 0.01)))
-            actual_cost = contracts * sig.price
-            if actual_cost > max_spend * 1.05:
-                contracts = max(1, int(max_spend / max(sig.price, 0.01)) - 1)
+            contracts   = max(1, int(sig.kelly_size / max(sig.price, 0.01)))
 
             resp = place_order(sig.ticker, side, contracts, price_cents)
             if resp.get("order_id"):
@@ -1156,20 +1014,6 @@ def run():
                     entry_volume_24h=sig.volume_24h,
                 )
                 risk.open_position(pos)
-                risk.last_trade_time = time.time()
-                # Persist cooldown to disk
-                try:
-                    import json as _json
-                    open('/data/last_trade_time.json','w').write(_json.dumps({'ts': risk.last_trade_time}))
-                except Exception:
-                    pass
-                risk.last_trade_time = time.time()
-                # Persist cooldown to disk
-                try:
-                    import json as _json
-                    open('/data/last_trade_time.json','w').write(_json.dumps({'ts': risk.last_trade_time}))
-                except Exception:
-                    pass
                 print_trade(sig, pos)
                 log_trade("open", {
                     "ticker": sig.ticker, "direction": sig.direction,
@@ -1204,8 +1048,6 @@ def run():
                     print(f"    ... and {len(risk.open) - 20} more")
             print()
 
-        _cycle_ms = (time.time() - _cycle_start) * 1000
-        log.info("Cycle complete in %.0fms | sleeping %ds", _cycle_ms, CFG.SCAN_INTERVAL)
         time.sleep(CFG.SCAN_INTERVAL)
 
 
@@ -1217,7 +1059,7 @@ if __name__ == "__main__":
     import threading
     import http.server as _hs
 
-    _shared = {"risk": None, "cycle": 0, "started_at": time.time(), "capital": 0.0}
+    _shared = {"risk": None, "cycle": 0, "started_at": time.time()}
 
     class HealthHandler(_hs.BaseHTTPRequestHandler):
         def log_message(self, *args, **kwargs):
@@ -1377,7 +1219,7 @@ if __name__ == "__main__":
                             "max_open":         CFG.MAX_OPEN,
                             "min_position_usd": CFG.MIN_POSITION_USD,
                             "max_position_usd": CFG.MAX_POSITION_USD,
-                            "total_capital":    _shared.get("capital", CFG.TOTAL_CAPITAL),
+                            "total_capital":    CFG.TOTAL_CAPITAL,
                             "max_daily_loss":   CFG.MAX_DAILY_LOSS,
                             "max_ttr_days":              CFG.MAX_TTR_DAYS,
                             "liquid_volume_min":         CFG.LIQUID_VOLUME_MIN,
