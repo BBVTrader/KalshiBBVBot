@@ -710,6 +710,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._send(200, ctype, data)
 
 
+
+if COPY_TRADE_ENABLED:
+    _social_engine = LiveLeaderboardCopier()
+    _flow_engine   = InformedFlowDetector()
+    _social_engine.start()
+    def _get_tickers():
+        try:
+            return [m.get('ticker','') for m in get_all_markets()[:50] if m.get('ticker')]
+        except:
+            return []
+    _flow_engine.start(_get_tickers)
+
+from flask import Response as _Resp
+import json as _json
+
+@app.route('/copy_trades')
+def copy_trades_endpoint():
+    trades = load_copy_trades(100) if COPY_TRADE_ENABLED else []
+    stats  = copy_trade_stats(trades) if COPY_TRADE_ENABLED else {}
+    social = _social_engine.get_status() if COPY_TRADE_ENABLED else {}
+    flow   = _flow_engine.get_status() if COPY_TRADE_ENABLED else {}
+    return _Resp(_json.dumps({'trades':trades,'stats':stats,'social':social,'flow':flow},indent=2),mimetype='application/json')
+
+
 if __name__ == "__main__":
     try:
         from cryptography.hazmat.primitives import hashes
