@@ -161,8 +161,9 @@ PAPER_MAX_DAILY_LOSS    = 5_000.0   # LIVE: 300.0
 # v2.3 MEASUREMENT MODE — flat sizing, LIQUID-only execution
 # =============================================================================
 
-FLAT_POSITION_USD     = 25.0   # Every trade is this size. No exceptions.
-ENABLE_THIN_EXECUTION = False  # If False, THIN signals are routed but skipped
+FLAT_POSITION_USD     = 12.50   # Every trade is this size. No exceptions.
+ENABLE_THIN_EXECUTION = False
+MIN_CONTRACT_PRICE = 0.30  # If False, THIN signals are routed but skipped
 
 # =============================================================================
 # CONFIGURATION
