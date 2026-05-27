@@ -1274,6 +1274,25 @@ if __name__ == "__main__":
                     }
                     return self._send_json(payload)
 
+
+                if self.path == "/api/config":
+                    return self._send_json({"flat_position_usd":FLAT_POSITION_USD,"profit_target":CFG.PROFIT_TARGET,"stop_loss":CFG.STOP_LOSS,"kelly_fraction":CFG.KELLY_FRACTION,"max_open":CFG.MAX_OPEN,"max_daily_loss":CFG.MAX_DAILY_LOSS,"total_capital":CFG.TOTAL_CAPITAL,"max_ttr_days":CFG.MAX_TTR_DAYS,"liquid_volume_min":CFG.LIQUID_VOLUME_MIN,"liquid_volume_24h_min":CFG.LIQUID_VOLUME_24H_MIN,"scan_interval":CFG.SCAN_INTERVAL,"velocity_decay_threshold":CFG.VELOCITY_DECAY_THRESHOLD,"velocity_decay_grace_s":CFG.VELOCITY_DECAY_GRACE_S,"paper_trade":CFG.PAPER_TRADE})
+
+                if self.path == "/api/config/update":
+                    global FLAT_POSITION_USD
+                    length=int(self.headers.get("Content-Length",0))
+                    body=json.loads(self.rfile.read(length).decode())
+                    changed=[]
+                    m={"profit_target":"PROFIT_TARGET","stop_loss":"STOP_LOSS","kelly_fraction":"KELLY_FRACTION","max_open":"MAX_OPEN","max_daily_loss":"MAX_DAILY_LOSS","total_capital":"TOTAL_CAPITAL","max_ttr_days":"MAX_TTR_DAYS","liquid_volume_min":"LIQUID_VOLUME_MIN","liquid_volume_24h_min":"LIQUID_VOLUME_24H_MIN","scan_interval":"SCAN_INTERVAL","velocity_decay_threshold":"VELOCITY_DECAY_THRESHOLD","velocity_decay_grace_s":"VELOCITY_DECAY_GRACE_S"}
+                    for k,a in m.items():
+                        if k in body:
+                            cast=int if a in ("MAX_OPEN","SCAN_INTERVAL","VELOCITY_DECAY_GRACE_S") else float
+                            setattr(CFG,a,cast(body[k]));changed.append(k)
+                    if "flat_position_usd" in body:
+                        FLAT_POSITION_USD=float(body["flat_position_usd"]);changed.append("flat_position_usd")
+                    log.info("[CONFIG] Hot-reloaded: %s",", ".join(changed))
+                    return self._send_json({"ok":True,"changed":changed})
+
                 if self.path == "/api/balance":
                     try:
                         import urllib.request as _ur
@@ -1325,6 +1344,10 @@ if __name__ == "__main__":
 
             except Exception as e:
                 self._send_json({"error": str(e)}, status=500)
+
+        def do_POST(self):
+            self.command="POST"
+            return self.do_GET()
 
         def do_OPTIONS(self):
             self.send_response(204)
