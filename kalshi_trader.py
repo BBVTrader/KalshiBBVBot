@@ -154,8 +154,8 @@ import urllib.error
 PAPER_MAX_OPEN          = 50        # LIVE: 8
 PAPER_MIN_POSITION_USD  = 5.0       # LIVE: 25.0
 PAPER_MAX_POSITION_USD  = 200.0     # LIVE: 500.0
-PAPER_TOTAL_CAPITAL     = 50_000.0  # LIVE: 10_000.0
-PAPER_MAX_DAILY_LOSS    = 5_000.0   # LIVE: 300.0
+PAPER_TOTAL_CAPITAL     = 500.0     # real account size
+PAPER_MAX_DAILY_LOSS    = 50.0      # ~10% of real balance
 
 # =============================================================================
 # v2.3 MEASUREMENT MODE — flat sizing, LIQUID-only execution
@@ -171,7 +171,7 @@ MIN_CONTRACT_PRICE = 0.40  # If False, THIN signals are routed but skipped
 
 @dataclass
 class Config:
-    PAPER_TRADE: bool = True
+    PAPER_TRADE: bool = os.getenv("PAPER_TRADE", "false").lower() == "true"
 
     API_KEY:    str = os.getenv("KALSHI_API_KEY", "")
     API_SECRET: str = os.getenv("KALSHI_API_SECRET", "")
