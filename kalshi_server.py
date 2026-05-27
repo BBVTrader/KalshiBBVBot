@@ -1,3 +1,9 @@
+try:
+    from copy_trade_module import LiveLeaderboardCopier, InformedFlowDetector, load_copy_trades, copy_trade_stats
+    COPY_TRADE_ENABLED = True
+except ImportError:
+    COPY_TRADE_ENABLED = False
+
 """
 Kalshi Quant Terminal — Render Server (v2.1)
 ---------------------------------------------
