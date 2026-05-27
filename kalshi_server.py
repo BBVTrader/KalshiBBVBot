@@ -676,8 +676,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 req = urllib.request.Request(f"{KALSHI_BASE}/portfolio/balance", headers=headers)
                 with urllib.request.urlopen(req, timeout=10) as r:
                     data = json.loads(r.read())
-                bal = data.get("balance", 0) / 100.0
-                self._send(200, "application/json", json.dumps({"balance": bal}).encode())
+                cash=data.get("balance",0)/100.0;port=data.get("portfolio_value",data.get("balance",0))/100.0
+                self._send(200,"application/json",json.dumps({"balance":port,"cash":cash}).encode())
             except Exception as e:
                 self._send(200, "application/json", json.dumps({"balance": 0, "error": str(e)}).encode())
             return
