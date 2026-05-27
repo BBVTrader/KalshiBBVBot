@@ -327,6 +327,20 @@ def _rsa_sign(method: str, path: str) -> dict:
     except Exception as e:
         log.warning("RSA signing failed: %s", e)
     return headers
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        import os as _os
+        kf = "/etc/secrets/kalshi_key.pem"
+        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
+        raw = raw.replace("\n", chr(10))
+        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
+        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
+        import base64 as _b64
+        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
+    except Exception as e:
+        log.warning("RSA signing failed: %s", e)
+    return headers
 
     try:
         from cryptography.hazmat.primitives import hashes, serialization
@@ -684,8 +698,12 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
     req = urllib.request.Request(
         CFG.KALSHI_BASE + "/portfolio/orders", data=body, headers=headers, method="POST")
     try:
+        _t0 = time.time()
         with urllib.request.urlopen(req, timeout=10) as r:
-            return json.loads(r.read())
+            result = json.loads(r.read())
+        _latency = (time.time() - _t0) * 1000
+        log.info("Order latency: %.0fms  ticker=%s", _latency, ticker)
+        return result
     except urllib.error.HTTPError as e:
         log.error("Order rejected HTTP %s: %s", e.code, e.read())
         return {}
@@ -1014,6 +1032,7 @@ def run():
         except NameError:
             pass
 
+        _cycle_start = time.time()
         log.info("-- Cycle %d  %s ------------------------------",
                  cycle, datetime.now().strftime("%H:%M:%S"))
 
@@ -1171,6 +1190,8 @@ def run():
                     print(f"    ... and {len(risk.open) - 20} more")
             print()
 
+        _cycle_ms = (time.time() - _cycle_start) * 1000
+        log.info("Cycle complete in %.0fms | sleeping %ds", _cycle_ms, CFG.SCAN_INTERVAL)
         time.sleep(CFG.SCAN_INTERVAL)
 
 
