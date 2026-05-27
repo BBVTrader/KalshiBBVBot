@@ -1078,6 +1078,22 @@ if __name__ == "__main__":
 
         def do_GET(self):
             try:
+                if self.path == "/copy_trades":
+                    import json as _j
+                    try:
+                        from copy_trade_module import load_copy_trades, copy_trade_stats
+                        _tr = load_copy_trades(100)
+                        _st = copy_trade_stats(_tr)
+                    except Exception:
+                        _tr = []
+                        _st = {}
+                    _b = _j.dumps({"trades":_tr,"stats":_st,"social":{},"flow":{}},indent=2).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type","application/json")
+                    self.send_header("Access-Control-Allow-Origin","*")
+                    self.end_headers()
+                    self.wfile.write(_b)
+                    return
                 if self.path == "/api/trades" or self.path.startswith("/api/trades?"):
                     trades = []
                     try:
