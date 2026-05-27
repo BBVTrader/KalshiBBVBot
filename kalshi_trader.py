@@ -163,7 +163,7 @@ PAPER_MAX_DAILY_LOSS    = 5_000.0   # LIVE: 300.0
 
 FLAT_POSITION_USD     = 12.50   # Every trade is this size. No exceptions.
 ENABLE_THIN_EXECUTION = False
-MIN_CONTRACT_PRICE = 0.30  # If False, THIN signals are routed but skipped
+MIN_CONTRACT_PRICE = 0.40  # If False, THIN signals are routed but skipped
 
 # =============================================================================
 # CONFIGURATION
