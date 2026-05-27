@@ -1250,6 +1250,28 @@ if __name__ == "__main__":
                     }
                     return self._send_json(payload)
 
+                from pathlib import Path as _Path
+                _HERE = _Path(__file__).parent
+                _page_map = {
+                    "/dashboard": "kalshi_dashboard.html",
+                    "/tradelog":  "trade_log.html",
+                }
+                from urllib.parse import urlparse as _up2
+                _clean_path = _up2(self.path).path.rstrip("/") or "/"
+                if _clean_path in _page_map:
+                    _fpath = _HERE / _page_map[_clean_path]
+                    if _fpath.exists():
+                        _body = _fpath.read_bytes()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/html")
+                        self.send_header("Content-Length", str(len(_body)))
+                        self.end_headers()
+                        self.wfile.write(_body)
+                        return
+                    else:
+                        self._send_json({"error": f"File not found: {_page_map[_clean_path]}"}, status=404)
+                        return
+
                 payload = {
                     "status":     "running",
                     "version":    "v2.3",
