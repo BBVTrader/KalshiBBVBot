@@ -1250,6 +1250,21 @@ if __name__ == "__main__":
                     }
                     return self._send_json(payload)
 
+                if self.path == "/api/balance":
+                    try:
+                        import urllib.request as _ur
+                        import urllib.error as _ue
+                        _bal_path = "/trade-api/v2/portfolio/balance"
+                        _headers = _rsa_sign("GET", _bal_path)
+                        _url = CFG.KALSHI_BASE.replace("/trade-api/v2", "") + _bal_path
+                        _req = urllib.request.Request(_url, headers=_headers)
+                        with urllib.request.urlopen(_req, timeout=10) as _r:
+                            _data = json.loads(_r.read().decode())
+                        _bal = _data.get("balance", 0) / 100.0
+                        return self._send_json({"balance": _bal})
+                    except Exception as ex:
+                        return self._send_json({"balance": 0, "error": str(ex)})
+
                 from pathlib import Path as _Path
                 _HERE = _Path(__file__).parent
                 _page_map = {
