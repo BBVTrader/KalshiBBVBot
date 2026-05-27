@@ -900,6 +900,7 @@ def run():
 """)
 
     risk    = RiskManager()
+    reconcile_open_positions(risk)
     cycle   = 0
     capital = CFG.TOTAL_CAPITAL
 
@@ -1055,6 +1056,29 @@ def run():
 # -----------------------------------------------------------------------------
 # HEALTH SERVER (for Render — exposes /state, /api/trades, /api/trades/raw)
 # -----------------------------------------------------------------------------
+
+
+def reconcile_open_positions(risk):
+    if CFG.PAPER_TRADE:
+        log.info("[RECONCILE] skipping")
+        return 0
+    try:
+        rpath="/trade-api/v2/portfolio/positions"
+        headers=_rsa_sign("GET",rpath)
+        url=CFG.KALSHI_BASE.replace("/trade-api/v2","")+rpath+"?limit=100&status=open"
+        req=urllib.request.Request(url,headers=headers)
+        with urllib.request.urlopen(req,timeout=15) as r:
+            data=json.loads(r.read().decode())
+        loaded=0
+        for p2 in data.get("market_positions",[]):
+            t=p2.get("ticker","");ct=p2.get("position",0)
+            if not t or ct==0: continue
+            d="LONG" if ct>0 else "SHORT";ct=abs(ct);ap=p2.get("avg_price_per_contract",50)/100.0
+            risk.open[t]=Position(ticker=t,direction=d,entry_price=ap,contracts=ct,size_usd=ct*ap,path="LIQUID",entry_volume_24h=0)
+            loaded+=1;log.info("[RECONCILE] %s %s %d @ %.2f",d,t,ct,ap)
+        log.info("[RECONCILE] %d loaded",loaded);return loaded
+    except Exception as e:
+        log.warning("[RECONCILE] failed: %s",e);return 0
 
 if __name__ == "__main__":
     import threading
