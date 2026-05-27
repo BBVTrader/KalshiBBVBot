@@ -687,6 +687,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(status, "application/json", body)
             return
 
+        if path == "/copy_trades":
+            import json as _j; _tr=load_copy_trades(100) if COPY_TRADE_ENABLED else []; _st=copy_trade_stats(_tr) if COPY_TRADE_ENABLED else {}; _so=_social_engine.get_status() if COPY_TRADE_ENABLED else {}; _fl=_flow_engine.get_status() if COPY_TRADE_ENABLED else {}; _b=_j.dumps({"trades":_tr,"stats":_st,"social":_so,"flow":_fl},indent=2).encode(); self._send(200,"application/json",_b); return
         if path == "/api/status":
             data = build_portfolio_status()
             self._send(200, "application/json", json.dumps(data).encode())
