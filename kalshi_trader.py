@@ -180,8 +180,8 @@ class Config:
     SCANNER_URL: str = os.getenv("SCANNER_URL", "https://kalshi-trader-1.onrender.com")
 
     # Exit rules — v2.3: tightened from 20%/10% to 10%/5% (2:1 R/R preserved)
-    PROFIT_TARGET:   float = 0.10
-    STOP_LOSS:       float = 0.05
+    PROFIT_TARGET:   float = 0.08
+    STOP_LOSS:       float = 0.04
 
     # Sizing — v2.3 uses FLAT_POSITION_USD; kelly fields kept for revert path
     KELLY_FRACTION:   float = 0.50
