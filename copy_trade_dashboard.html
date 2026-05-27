@@ -1,0 +1,207 @@
+<!-- BBV COPY TRADE DASHBOARD — add to kalshi_quant_terminal.html -->
+<!-- Calls /copy_trades endpoint on kalshi_server.py -->
+
+<style>
+.ct-section{margin-top:28px}
+.ct-h2{color:#00d4ff;font-size:11px;text-transform:uppercase;letter-spacing:2px;border-bottom:1px solid #1e2d40;padding-bottom:6px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.ct-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
+.ct-social{background:#00ff8815;color:#00ff88;border:1px solid #00ff8830}
+.ct-flow{background:#ffaa0015;color:#ffaa00;border:1px solid #ffaa0030}
+.ct-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.ct-card{background:#111827;border:1px solid #1e2d40;border-radius:8px;padding:12px}
+.ct-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px}
+.ct-val{font-size:22px;font-weight:bold;color:#00d4ff;margin-top:4px}
+.ct-sub{font-size:10px;color:#6b7280;margin-top:2px}
+.ct-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px}
+.ct-table th{background:#0d1117;color:#6b7280;text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.ct-table td{padding:7px 10px;border-bottom:1px solid #111827}
+.ct-table tr:hover td{background:#111827}
+.ct-rank{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;margin:0 auto}
+.ct-rank-1{background:#ffd70020;color:#ffd700;border:1px solid #ffd70050}
+.ct-rank-2{background:#c0c0c020;color:#c0c0c0;border:1px solid #c0c0c050}
+.ct-rank-3{background:#cd7f3220;color:#cd7f32;border:1px solid #cd7f3250}
+.ct-rank-n{background:#1e2d4020;color:#6b7280;border:1px solid #1e2d4050}
+.ct-following{background:#00ff8815;color:#00ff88;border:1px solid #00ff8830;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
+.ct-watching{background:#6b728015;color:#6b7280;border:1px solid #6b728030;padding:2px 8px;border-radius:3px;font-size:10px}
+.ct-winbar-bg{background:#1e2d40;border-radius:4px;height:6px;margin-top:4px}
+.ct-winbar{height:6px;border-radius:4px;background:linear-gradient(90deg,#00ff88,#00d4ff);transition:width 0.5s}
+</style>
+
+<div class="ct-section">
+  <div class="ct-h2">
+    Copy Trading Engine
+    <span class="ct-badge ct-social" id="ct-social-status">SOCIAL ●</span>
+    <span class="ct-badge ct-flow" id="ct-flow-status">FLOW ●</span>
+    <span style="margin-left:auto;font-size:10px;color:#6b7280" id="ct-last-scan">--</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="ct-grid">
+    <div class="ct-card"><div class="ct-label">Total Copies</div><div class="ct-val" id="ct-total">--</div></div>
+    <div class="ct-card"><div class="ct-label">Social Copies</div><div class="ct-val" style="color:#00ff88" id="ct-social-count">--</div></div>
+    <div class="ct-card"><div class="ct-label">Flow Signals</div><div class="ct-val" style="color:#ffaa00" id="ct-flow-count">--</div></div>
+    <div class="ct-card"><div class="ct-label">Total Deployed</div><div class="ct-val" id="ct-cost">--</div></div>
+    <div class="ct-card"><div class="ct-label">Per Trade Cap</div><div class="ct-val">$12.50</div><div class="ct-sub">Hard limit always</div></div>
+    <div class="ct-card"><div class="ct-label">Traders Ranked</div><div class="ct-val" id="ct-ranked">--</div><div class="ct-sub">Following top <span id="ct-top-n">5</span></div></div>
+  </div>
+
+  <!-- Live Leaderboard -->
+  <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+    Live Trader Leaderboard — Ranked by Consistency Score (Win Rate × Volume Evidence)
+  </div>
+  <table class="ct-table">
+    <thead>
+      <tr>
+        <th style="width:50px;text-align:center">Rank</th>
+        <th>Trader</th>
+        <th>Win Rate</th>
+        <th>Trades</th>
+        <th>W / L</th>
+        <th>Total P&L</th>
+        <th>Score</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="ct-leaderboard">
+      <tr><td colspan="8" style="color:#6b7280;text-align:center;padding:16px">Scanning leaderboard...</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Flow Signals -->
+  <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+    Live Order Book Flow Signals
+  </div>
+  <table class="ct-table">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Direction</th>
+        <th>Imbalance</th>
+        <th>YES Vol</th>
+        <th>NO Vol</th>
+        <th>Price</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody id="ct-flow-table">
+      <tr><td colspan="7" style="color:#6b7280;text-align:center;padding:12px">Scanning order books...</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Copy Trade Log -->
+  <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+    Copy Trade Log — Separate from Main Bot Trades
+  </div>
+  <table class="ct-table">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Source</th>
+        <th>Ticker</th>
+        <th>Direction</th>
+        <th>Contracts</th>
+        <th>Cost</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody id="ct-log-table">
+      <tr><td colspan="7" style="color:#6b7280;text-align:center;padding:12px">No copy trades yet</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+async function refreshCopyTrades() {
+  try {
+    const r = await fetch('/copy_trades').then(x => x.json());
+
+    // Status badges
+    const socialStatus = r.social?.status || 'IDLE';
+    const flowStatus   = r.flow?.status   || 'IDLE';
+    document.getElementById('ct-social-status').textContent = 'SOCIAL ' + (socialStatus === 'RUNNING' ? '●' : '○');
+    document.getElementById('ct-flow-status').textContent   = 'FLOW '   + (flowStatus   === 'RUNNING' ? '●' : '○');
+    document.getElementById('ct-last-scan').textContent = r.social?.last_scan ? 'Last scan: ' + new Date(r.social.last_scan).toLocaleTimeString() : '';
+
+    // Stats
+    const stats = r.stats || {};
+    document.getElementById('ct-total').textContent        = stats.total  || 0;
+    document.getElementById('ct-social-count').textContent = stats.social || 0;
+    document.getElementById('ct-flow-count').textContent   = stats.flow   || 0;
+    document.getElementById('ct-cost').textContent         = '$' + (stats.total_cost || 0).toFixed(2);
+    document.getElementById('ct-ranked').textContent       = r.social?.total_ranked || 0;
+    document.getElementById('ct-top-n').textContent        = r.social?.top_n || 5;
+
+    // Live leaderboard
+    const lb = r.social?.leaderboard || [];
+    if (lb.length > 0) {
+      document.getElementById('ct-leaderboard').innerHTML = lb.map(t => {
+        const rankClass = t.rank === 1 ? 'ct-rank-1' : t.rank === 2 ? 'ct-rank-2' : t.rank === 3 ? 'ct-rank-3' : 'ct-rank-n';
+        const wrPct     = (t.win_rate * 100).toFixed(1);
+        const barWidth  = Math.min(100, t.win_rate * 100);
+        const pnlColor  = t.total_pnl >= 0 ? '#00ff88' : '#ff4444';
+        const pnlSign   = t.total_pnl >= 0 ? '+' : '';
+        return `<tr>
+          <td style="text-align:center"><div class="ct-rank ${rankClass}">${t.rank}</div></td>
+          <td><b>${t.username}</b></td>
+          <td>
+            <div>${wrPct}%</div>
+            <div class="ct-winbar-bg"><div class="ct-winbar" style="width:${barWidth}%"></div></div>
+          </td>
+          <td>${t.total_trades}</td>
+          <td><span style="color:#00ff88">${t.wins}W</span> / <span style="color:#ff4444">${t.losses}L</span></td>
+          <td style="color:${pnlColor}">${pnlSign}$${Math.abs(t.total_pnl).toFixed(2)}</td>
+          <td style="color:#00d4ff">${t.consistency.toFixed(2)}</td>
+          <td>${t.following
+            ? '<span class="ct-following">FOLLOWING</span>'
+            : '<span class="ct-watching">WATCHING</span>'
+          }</td>
+        </tr>`;
+      }).join('');
+    } else {
+      document.getElementById('ct-leaderboard').innerHTML = '<tr><td colspan="8" style="color:#6b7280;text-align:center;padding:16px">Fetching leaderboard...</td></tr>';
+    }
+
+    // Flow signals
+    const signals = r.flow?.recent_signals || [];
+    if (signals.length > 0) {
+      document.getElementById('ct-flow-table').innerHTML = signals.map(s => `
+        <tr>
+          <td><b>${s.ticker}</b></td>
+          <td style="color:${s.direction==='YES'?'#00ff88':'#ff4444'};font-weight:bold">${s.direction}</td>
+          <td style="color:#ffaa00;font-weight:bold">${s.imbalance}×</td>
+          <td style="color:#00ff88">${s.yes_vol?.toLocaleString() || '--'}</td>
+          <td style="color:#ff4444">${s.no_vol?.toLocaleString()  || '--'}</td>
+          <td>$${s.yes_bid}</td>
+          <td style="color:#6b7280">${new Date(s.timestamp).toLocaleTimeString()}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('ct-flow-table').innerHTML = '<tr><td colspan="7" style="color:#6b7280;text-align:center;padding:12px">No flow signals yet</td></tr>';
+    }
+
+    // Copy trade log
+    const trades = r.trades || [];
+    if (trades.length > 0) {
+      document.getElementById('ct-log-table').innerHTML = trades.slice(0, 25).map(t => `
+        <tr>
+          <td style="color:#6b7280">${new Date(t.ts).toLocaleTimeString()}</td>
+          <td><span class="ct-badge ${t.source==='SOCIAL'?'ct-social':'ct-flow'}">${t.source}</span></td>
+          <td><b>${t.ticker}</b></td>
+          <td style="color:${t.direction==='YES'?'#00ff88':'#ff4444'};font-weight:bold">${t.direction}</td>
+          <td>${t.contracts}</td>
+          <td style="color:#00d4ff;font-weight:bold">$${t.cost}</td>
+          <td style="color:#6b7280;font-size:10px">${t.reason}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('ct-log-table').innerHTML = '<tr><td colspan="7" style="color:#6b7280;text-align:center;padding:12px">No copy trades yet</td></tr>';
+    }
+
+  } catch(e) {
+    console.log('[CopyTrade] refresh error:', e.message);
+  }
+}
+
+refreshCopyTrades();
+setInterval(refreshCopyTrades, 30000);
+</script>
