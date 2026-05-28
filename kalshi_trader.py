@@ -612,7 +612,7 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
     }).encode()
     headers = _rsa_sign("POST", path)
     req = urllib.request.Request(
-        CFG.KALSHI_BASE + "/orders", data=body, headers=headers, method="POST")
+        CFG.KALSHI_BASE + "/portfolio/orders", data=body, headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             return json.loads(r.read())
