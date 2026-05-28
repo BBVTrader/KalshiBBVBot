@@ -1288,7 +1288,7 @@ if __name__ == "__main__":
                             cast=int if a in ("MAX_OPEN","SCAN_INTERVAL","VELOCITY_DECAY_GRACE_S") else float
                             setattr(CFG,a,cast(body[k]));changed.append(k)
                     if "flat_position_usd" in body:
-                        FLAT_POSITION_USD=float(body["flat_position_usd"]);changed.append("flat_position_usd")
+                        global FLAT_POSITION_USD; FLAT_POSITION_USD=float(body["flat_position_usd"]);changed.append("flat_position_usd")
                     log.info("[CONFIG] Hot-reloaded: %s",", ".join(changed))
                     return self._send_json({"ok":True,"changed":changed})
 
