@@ -96,7 +96,7 @@ from pathlib import Path
 PORT = int(os.getenv("SCANNER_PORT", "8765"))
 KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2"
 HERE        = Path(__file__).parent
-API_KEY     = os.getenv("KALSHI_API_KEY", "")
+API_KEY     = os.getenv("KALSHI_API_KEY", "") or os.getenv("KALSHI_API_KEY", "4b0da303-4cfc-4dfb-82b5-0f1ace83c32c")
 API_SECRET  = os.getenv("KALSHI_API_SECRET", "")
 
 
