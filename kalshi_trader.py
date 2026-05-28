@@ -274,101 +274,23 @@ def _rsa_sign(method: str, path: str) -> dict:
     try:
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
-        import os as _os
-        kf = "/etc/secrets/kalshi_key.pem"
-        raw = open(kf).read() if _os.path.exists(kf) else CFG.API_SECRET
-        raw = raw.replace("\n", chr(10))
-        pk = serialization.load_pem_private_key(raw.strip().encode(), password=None)
+        import base64 as _b64, os as _os
+        raw = CFG.API_SECRET
+        # Handle literal \n from Render env vars
+        raw = raw.replace("\\n", "\n").replace("\\r", "").strip()
+        # If no real newlines, use normalize
+        if "\n" not in raw:
+            raw = _normalize_pem(raw).decode()
+        pk = serialization.load_pem_private_key(raw.encode(), password=None)
         sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
-        import base64 as _b64
-        headers.update({"KALSHI-ACCESS-KEY": CFG.API_KEY, "KALSHI-ACCESS-TIMESTAMP": ts, "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()})
-    except Exception as e:
-        log.warning("RSA signing failed: %s", e)
-    return headers
-
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.backends import default_backend
-
-        pem_bytes   = _normalize_pem(CFG.API_SECRET)
-        private_key = serialization.load_pem_private_key(
-            pem_bytes, password=None, backend=default_backend()
-        )
-        signature = private_key.sign(
-            msg.encode(),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.DIGEST_LENGTH
-            ),
-            hashes.SHA256()
-        )
-        sig_b64 = base64.b64encode(signature).decode()
-
         headers.update({
-            "KALSHI-ACCESS-KEY":       CFG.API_KEY,
+            "KALSHI-ACCESS-KEY": CFG.API_KEY,
             "KALSHI-ACCESS-TIMESTAMP": ts,
-            "KALSHI-ACCESS-SIGNATURE": sig_b64,
+            "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()
         })
     except Exception as e:
         log.warning("RSA signing failed: %s", e)
-
     return headers
-
-
-def _public_headers() -> dict:
-    """Headers for unauthenticated public Kalshi reads (markets endpoint)."""
-    return {"Content-Type": "application/json", "Accept": "application/json"}
-
-
-# -----------------------------------------------------------------------------
-# DATA MODELS
-# -----------------------------------------------------------------------------
-
-@dataclass
-class Signal:
-    """Mirrors what the scanner returns. We just receive these."""
-    ticker:    str
-    title:     str
-    direction: str
-    price:     float
-    composite: int
-    ofi:       int
-    days:      float
-    edge:      float
-    # v2.0: liquidity metadata for routing decisions
-    volume:        float = 0.0  # lifetime contracts traded
-    volume_24h:    float = 0.0  # last 24hr contracts traded
-    open_interest: float = 0.0
-    # Routing assignment (set by route_signal())
-    path:       str = "SKIP"    # "LIQUID" | "THIN" | "SKIP"
-    skip_reason: str = ""
-    kelly_size: float = 0.0
-    ts:        float = field(default_factory=time.time)
-
-
-@dataclass
-class Position:
-    ticker:      str
-    title:       str
-    direction:   str
-    entry_price: float
-    size_usd:    float
-    contracts:   int
-    order_id:    str
-    # v2.0: track path + entry-time volume snapshot for velocity decay
-    path:        str = "LIQUID"  # "LIQUID" | "THIN"
-    entry_volume_24h: float = 0.0
-    opened_at:   float = field(default_factory=time.time)
-    closed_at:   Optional[float] = None
-    exit_price:  Optional[float] = None
-    pnl:         float = 0.0
-    status:      str = "open"
-
-
-# -----------------------------------------------------------------------------
-# SCANNER CLIENT — pulls qualified signals from kalshi_server's /api/signals
-# -----------------------------------------------------------------------------
 
 def poll_scanner_signals() -> tuple[list[Signal], dict]:
     """
