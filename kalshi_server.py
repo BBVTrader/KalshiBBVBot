@@ -93,7 +93,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-PORT = 8765
+PORT = int(os.getenv("SCANNER_PORT", "8765"))
 KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2"
 HERE        = Path(__file__).parent
 API_KEY     = os.getenv("KALSHI_API_KEY", "")
