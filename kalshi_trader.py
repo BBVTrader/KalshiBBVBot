@@ -179,7 +179,7 @@ class Config:
     KALSHI_BASE: str = "https://external-api.kalshi.com/trade-api/v2"
 
     # Scanner is the brain — trader polls it for signals
-    SCANNER_URL: str = "http://localhost:8765"
+    SCANNER_URL: str = "http://localhost:8181"
 
     # Exit rules — v2.3: tightened from 20%/10% to 10%/5% (2:1 R/R preserved)
     PROFIT_TARGET:   float = 0.08
