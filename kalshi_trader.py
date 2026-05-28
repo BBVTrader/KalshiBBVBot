@@ -557,7 +557,7 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
                  ticker, side.upper(), contracts, price_cents, oid)
         return {"order_id": oid, "status": "paper_filled", "paper": True}
 
-    path      = "/trade-api/v2/orders"
+    path      = "/trade-api/v2/portfolio/orders"
     price_key = "yes_price" if side == "yes" else "no_price"
     body      = json.dumps({
         "ticker": ticker, "side": side, "type": "limit",
