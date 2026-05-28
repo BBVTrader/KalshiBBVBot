@@ -741,7 +741,13 @@ if COPY_TRADE_ENABLED:
             return []
     _flow_engine.start(_get_tickers)
 
-from flask import Response as _Resp
+try:
+    try:
+    from flask import Response as _Resp
+except ImportError:
+    _Resp=None
+except ImportError:
+    _Resp = None
 import json as _json
 
 @app.route('/copy_trades')
