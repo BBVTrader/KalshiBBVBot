@@ -167,6 +167,22 @@ MIN_CONTRACT_PRICE = 0.40  # If False, THIN signals are routed but skipped
 
 # =============================================================================
 # CONFIGURATION
+@dataclass
+class Signal:
+    ticker:    str
+    title:     str
+    direction: str
+    price:     float
+    composite: int
+    ofi:       int
+    days:      float
+    edge:      float
+    volume:    float = 0.0
+    volume_24h: float = 0.0
+    open_interest: float = 0.0
+    path:      str = 'SKIP'
+    kelly_size: float = 0.0
+
 # =============================================================================
 
 @dataclass
