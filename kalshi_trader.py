@@ -207,7 +207,7 @@ class Config:
     # =========================================================================
 
     # Universal entry gate — v2.3: opened from 3d to 14d
-    MAX_TTR_DAYS: float = 14.0
+    MAX_TTR_DAYS: float = 999.0
 
     # LIQUID path: deep markets with normal flow exits
     # v2.3: loosened from 10K / 500 to 2K / 100
