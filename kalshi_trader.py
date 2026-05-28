@@ -287,6 +287,10 @@ def _rsa_sign(method: str, path: str) -> dict:
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if not CFG.API_KEY:
         return headers
+    log.info('RSA DEBUG: key=%s secret_len=%d secret_has_newline=%s secret_start=%s',
+             CFG.API_KEY[:8], len(CFG.API_SECRET),
+             chr(10) in CFG.API_SECRET,
+             repr(CFG.API_SECRET[:50]))
     try:
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
