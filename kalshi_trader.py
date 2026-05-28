@@ -162,7 +162,7 @@ PAPER_MAX_DAILY_LOSS    = 50.0      # ~10% of real balance
 # =============================================================================
 
 FLAT_POSITION_USD     = 12.50   # Every trade is this size. No exceptions.
-ENABLE_THIN_EXECUTION = False
+ENABLE_THIN_EXECUTION = True
 MIN_CONTRACT_PRICE = 0.40  # If False, THIN signals are routed but skipped
 
 # =============================================================================
@@ -211,8 +211,8 @@ class Config:
 
     # LIQUID path: deep markets with normal flow exits
     # v2.3: loosened from 10K / 500 to 2K / 100
-    LIQUID_VOLUME_MIN:       float = 2_000.0     # lifetime contracts traded
-    LIQUID_VOLUME_24H_MIN:   float = 100.0       # last 24hr (freshness check)
+    LIQUID_VOLUME_MIN:       float = 100.0     # lifetime contracts traded
+    LIQUID_VOLUME_24H_MIN:   float = 0.0       # last 24hr (freshness check)
     VELOCITY_DECAY_GRACE_S:  float = 30 * 60     # 30min grace after entry
     VELOCITY_DECAY_THRESHOLD: float = 0.50       # exit if v24h < 50% of entry
 
