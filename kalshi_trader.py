@@ -53,7 +53,7 @@ v2.2 (2026-05-25): FLAT SIZING + LIQUID-ONLY MEASUREMENT MODE.
 
   Three changes for this measurement run:
 
-    1. FLAT SIZING. Every trade is FLAT_POSITION_USD ($25). Every entry
+    1. FLAT SIZING. Every trade is CFG.FLAT_POSITION_USD ($25). Every entry
        is the same notional risk. Wins and losses speak for themselves.
        After enough samples, bucket by score and see if hit rate actually
        rises with score. THEN sizing decisions become data-driven.
@@ -172,6 +172,7 @@ MIN_CONTRACT_PRICE = 0.40  # If False, THIN signals are routed but skipped
 @dataclass
 class Config:
     PAPER_TRADE: bool = os.getenv("PAPER_TRADE", "false").lower() == "true"
+    FLAT_POSITION_USD: float = 12.50
 
     API_KEY:    str = os.getenv("KALSHI_API_KEY", "")
     API_SECRET: str = os.getenv("KALSHI_API_SECRET", "")
@@ -184,7 +185,7 @@ class Config:
     PROFIT_TARGET:   float = 0.08
     STOP_LOSS:       float = 0.04
 
-    # Sizing — v2.3 uses FLAT_POSITION_USD; kelly fields kept for revert path
+    # Sizing — v2.3 uses CFG.FLAT_POSITION_USD; kelly fields kept for revert path
     KELLY_FRACTION:   float = 0.50
     MAX_POSITION_USD: float = PAPER_MAX_POSITION_USD
     MIN_POSITION_USD: float = PAPER_MIN_POSITION_USD
@@ -659,7 +660,7 @@ class RiskManager:
             return False, f"Max open positions ({CFG.MAX_OPEN}) reached"
         if sig.ticker in self.open:
             return False, f"Already have position in {sig.ticker}"
-        # v2.3: with FLAT_POSITION_USD=$25, this check is effectively dead
+        # v2.3: with CFG.FLAT_POSITION_USD=$25, this check is effectively dead
         # but kept as a safety net in case someone reverts FLAT and forgets
         # to restore Kelly. Min is $5 (PAPER) so $25 always passes.
         if sig.kelly_size < CFG.MIN_POSITION_USD:
@@ -962,13 +963,13 @@ def run():
             )
             if s.path == "LIQUID":
                 # v2.3: flat sizing
-                s.kelly_size = FLAT_POSITION_USD
+                s.kelly_size = CFG.FLAT_POSITION_USD
                 liquid_signals.append(s)
             elif s.path == "THIN":
                 thin_signals_routed += 1
                 if ENABLE_THIN_EXECUTION:
                     # Path kept intact for revert; not reached when False
-                    s.kelly_size = FLAT_POSITION_USD
+                    s.kelly_size = CFG.FLAT_POSITION_USD
                     liquid_signals.append(s)  # treated same downstream
                 else:
                     risk.record_skip("thin_path_disabled_for_experiment")
@@ -1252,7 +1253,7 @@ if __name__ == "__main__":
                         "liquid_book_used_usd": liquid_used,
                         "skip_counts": dict(risk.skip_counts) if risk else {},
                         "config": {
-                            "flat_position_usd":     FLAT_POSITION_USD,
+                            "flat_position_usd":     CFG.FLAT_POSITION_USD,
                             "enable_thin_execution": ENABLE_THIN_EXECUTION,
                             "profit_target":    CFG.PROFIT_TARGET,
                             "stop_loss":        CFG.STOP_LOSS,
@@ -1276,7 +1277,7 @@ if __name__ == "__main__":
 
 
                 if self.path == "/api/config":
-                    return self._send_json({"flat_position_usd":FLAT_POSITION_USD,"profit_target":CFG.PROFIT_TARGET,"stop_loss":CFG.STOP_LOSS,"kelly_fraction":CFG.KELLY_FRACTION,"max_open":CFG.MAX_OPEN,"max_daily_loss":CFG.MAX_DAILY_LOSS,"total_capital":CFG.TOTAL_CAPITAL,"max_ttr_days":CFG.MAX_TTR_DAYS,"liquid_volume_min":CFG.LIQUID_VOLUME_MIN,"liquid_volume_24h_min":CFG.LIQUID_VOLUME_24H_MIN,"scan_interval":CFG.SCAN_INTERVAL,"velocity_decay_threshold":CFG.VELOCITY_DECAY_THRESHOLD,"velocity_decay_grace_s":CFG.VELOCITY_DECAY_GRACE_S,"paper_trade":CFG.PAPER_TRADE})
+                    return self._send_json({"flat_position_usd":CFG.FLAT_POSITION_USD,"profit_target":CFG.PROFIT_TARGET,"stop_loss":CFG.STOP_LOSS,"kelly_fraction":CFG.KELLY_FRACTION,"max_open":CFG.MAX_OPEN,"max_daily_loss":CFG.MAX_DAILY_LOSS,"total_capital":CFG.TOTAL_CAPITAL,"max_ttr_days":CFG.MAX_TTR_DAYS,"liquid_volume_min":CFG.LIQUID_VOLUME_MIN,"liquid_volume_24h_min":CFG.LIQUID_VOLUME_24H_MIN,"scan_interval":CFG.SCAN_INTERVAL,"velocity_decay_threshold":CFG.VELOCITY_DECAY_THRESHOLD,"velocity_decay_grace_s":CFG.VELOCITY_DECAY_GRACE_S,"paper_trade":CFG.PAPER_TRADE})
 
                 if self.path == "/api/config/update":
                     length=int(self.headers.get("Content-Length",0))
@@ -1288,7 +1289,7 @@ if __name__ == "__main__":
                             cast=int if a in ("MAX_OPEN","SCAN_INTERVAL","VELOCITY_DECAY_GRACE_S") else float
                             setattr(CFG,a,cast(body[k]));changed.append(k)
                     if "flat_position_usd" in body:
-                        global FLAT_POSITION_USD; FLAT_POSITION_USD=float(body["flat_position_usd"]);changed.append("flat_position_usd")
+                        CFG.FLAT_POSITION_USD=float(body["flat_position_usd"]);changed.append("flat_position_usd")
                     log.info("[CONFIG] Hot-reloaded: %s",", ".join(changed))
                     return self._send_json({"ok":True,"changed":changed})
 
@@ -1332,7 +1333,7 @@ if __name__ == "__main__":
                 payload = {
                     "status":     "running",
                     "version":    "v2.3",
-                    "mode_note":  "measurement mode: flat $%.0f sizing, LIQUID-only execution" % FLAT_POSITION_USD,
+                    "mode_note":  "measurement mode: flat $%.0f sizing, LIQUID-only execution" % CFG.FLAT_POSITION_USD,
                     "cycle":      _shared.get("cycle", 0),
                     "trade_mode": "PAPER" if CFG.PAPER_TRADE else "LIVE",
                     "architecture": "executor with liquidity routing overlay",
