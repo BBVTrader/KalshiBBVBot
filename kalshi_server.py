@@ -742,10 +742,7 @@ if COPY_TRADE_ENABLED:
     _flow_engine.start(_get_tickers)
 
 try:
-    try:
     from flask import Response as _Resp
-except ImportError:
-    _Resp=None
 except ImportError:
     _Resp = None
 import json as _json
