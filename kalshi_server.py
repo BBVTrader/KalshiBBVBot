@@ -747,14 +747,6 @@ except ImportError:
     _Resp = None
 import json as _json
 
-@app.route('/copy_trades')
-def copy_trades_endpoint():
-    trades = load_copy_trades(100) if COPY_TRADE_ENABLED else []
-    stats  = copy_trade_stats(trades) if COPY_TRADE_ENABLED else {}
-    social = _social_engine.get_status() if COPY_TRADE_ENABLED else {}
-    flow   = _flow_engine.get_status() if COPY_TRADE_ENABLED else {}
-    return _Resp(_json.dumps({'trades':trades,'stats':stats,'social':social,'flow':flow},indent=2),mimetype='application/json')
-
 
 if __name__ == "__main__":
     try:
