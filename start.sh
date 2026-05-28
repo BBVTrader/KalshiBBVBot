@@ -1,10 +1,9 @@
 #!/bin/bash
-# Start the Kalshi server and trader together
-echo "Starting Kalshi server..."
-python kalshi_server.py &
+echo "Starting Kalshi scanner (port 8080)..."
+PORT=8080 python kalshi_server.py &
+SCANNER_PID=$!
 
-# Wait a few seconds so the server is ready before the trader starts
-sleep 3
+sleep 4
 
-echo "Starting Kalshi trader..."
-python kalshi_trader.py
+echo "Starting Kalshi trader (port 10000)..."
+SCANNER_URL=http://localhost:8080 PORT=10000 python kalshi_trader.py
