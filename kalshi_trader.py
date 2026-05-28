@@ -302,7 +302,7 @@ def _rsa_sign(method: str, path: str) -> dict:
         if "\n" not in raw:
             raw = _normalize_pem(raw).decode()
         pk = serialization.load_pem_private_key(raw.encode(), password=None)
-        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=32), hashes.SHA256())
+        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH), hashes.SHA256())
         headers.update({
             "KALSHI-ACCESS-KEY": CFG.API_KEY,
             "KALSHI-ACCESS-TIMESTAMP": ts,
