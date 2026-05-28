@@ -1279,7 +1279,6 @@ if __name__ == "__main__":
                     return self._send_json({"flat_position_usd":FLAT_POSITION_USD,"profit_target":CFG.PROFIT_TARGET,"stop_loss":CFG.STOP_LOSS,"kelly_fraction":CFG.KELLY_FRACTION,"max_open":CFG.MAX_OPEN,"max_daily_loss":CFG.MAX_DAILY_LOSS,"total_capital":CFG.TOTAL_CAPITAL,"max_ttr_days":CFG.MAX_TTR_DAYS,"liquid_volume_min":CFG.LIQUID_VOLUME_MIN,"liquid_volume_24h_min":CFG.LIQUID_VOLUME_24H_MIN,"scan_interval":CFG.SCAN_INTERVAL,"velocity_decay_threshold":CFG.VELOCITY_DECAY_THRESHOLD,"velocity_decay_grace_s":CFG.VELOCITY_DECAY_GRACE_S,"paper_trade":CFG.PAPER_TRADE})
 
                 if self.path == "/api/config/update":
-                    global FLAT_POSITION_USD
                     length=int(self.headers.get("Content-Length",0))
                     body=json.loads(self.rfile.read(length).decode())
                     changed=[]
