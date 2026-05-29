@@ -1,3 +1,9 @@
+try:
+    from copy_trade_module import LiveLeaderboardCopier, InformedFlowDetector, load_copy_trades, copy_trade_stats
+    COPY_TRADE_ENABLED = True
+except ImportError:
+    COPY_TRADE_ENABLED = False
+
 """
 Kalshi Quant Terminal — Render Server (v2.1)
 ---------------------------------------------
@@ -87,10 +93,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-PORT        = int(os.getenv("PORT", "8765"))
-KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2"
+PORT = int(os.getenv("SCANNER_PORT", "8765"))
+KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2"
 HERE        = Path(__file__).parent
-API_KEY     = os.getenv("KALSHI_API_KEY", "")
+API_KEY     = os.getenv("KALSHI_API_KEY", "") or os.getenv("KALSHI_API_KEY", "4b0da303-4cfc-4dfb-82b5-0f1ace83c32c")
 API_SECRET  = os.getenv("KALSHI_API_SECRET", "")
 
 
@@ -645,6 +651,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        from urllib.parse import urlparse as _up
+        _pth = _up(self.path).path
+        if _pth == "/copy_trades":
+            import json as _j
+            _tr = load_copy_trades(100) if COPY_TRADE_ENABLED else []
+            _st = copy_trade_stats(_tr) if COPY_TRADE_ENABLED else {}
+            _so = _social_engine.get_status() if COPY_TRADE_ENABLED else {}
+            _fl = _flow_engine.get_status() if COPY_TRADE_ENABLED else {}
+            _b  = _j.dumps({"trades":_tr,"stats":_st,"social":_so,"flow":_fl},indent=2).encode()
+            self._send(200,"application/json",_b)
+            return
         from urllib.parse import urlparse
         parsed = urlparse(self.path)
         path   = parsed.path.rstrip("/") or "/"
@@ -670,6 +687,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(status, "application/json", body)
             return
 
+        if path == "/copy_trades":
+            import json as _j; _tr=load_copy_trades(100) if COPY_TRADE_ENABLED else []; _st=copy_trade_stats(_tr) if COPY_TRADE_ENABLED else {}; _so=_social_engine.get_status() if COPY_TRADE_ENABLED else {}; _fl=_flow_engine.get_status() if COPY_TRADE_ENABLED else {}; _b=_j.dumps({"trades":_tr,"stats":_st,"social":_so,"flow":_fl},indent=2).encode(); self._send(200,"application/json",_b); return
         if path == "/api/status":
             data = build_portfolio_status()
             self._send(200, "application/json", json.dumps(data).encode())
@@ -708,6 +727,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def _send_file(self, path, ctype):
         data = path.read_bytes()
         self._send(200, ctype, data)
+
+
+
+if COPY_TRADE_ENABLED:
+    _social_engine = LiveLeaderboardCopier()
+    _flow_engine   = InformedFlowDetector()
+    _social_engine.start()
+    def _get_tickers():
+        try:
+            return [m.get('ticker','') for m in get_all_markets()[:50] if m.get('ticker')]
+        except:
+            return []
+    _flow_engine.start(_get_tickers)
+
+try:
+    from flask import Response as _Resp
+except ImportError:
+    _Resp = None
+import json as _json
 
 
 if __name__ == "__main__":

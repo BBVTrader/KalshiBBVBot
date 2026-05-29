@@ -173,7 +173,7 @@ td.right{text-align:right}
       <span class="dot"></span>
       <span id="engineLabel">ENGINE: --</span>
     </div>
-    <div class="pill paper" id="modePill">LIVE TRADING</div>
+    <div class="pill paper" id="modePill">PAPER TRADING</div>
     <div id="clk">--:--:--</div>
     <button class="nav-link export" onclick="downloadCSV()">⬇ CSV</button>
   </div>
@@ -217,11 +217,6 @@ td.right{text-align:right}
       <div class="card-label">Worst Trade</div>
       <div class="card-val neut" id="s-worst" style="color:var(--text)">$0.00</div>
       <div class="card-sub" id="s-worst-ticker">--</div>
-    </div>
-    <div class="card" style="border-color:#00d4ff">
-      <div class="card-lbl">KALSHI PORTFOLIO BALANCE</div>
-      <div class="card-val" id="s-balance" style="color:#00d4ff">$--</div>
-      <div class="card-sub" id="s-balance-sub">live account</div>
     </div>
   </div>
 
@@ -624,20 +619,6 @@ function downloadCSV(){
 
 loadData();
 setInterval(loadData, 10000); // refresh every 10s
-
-async function fetchBalance() {
-  try {
-    const r = await fetch('/api/balance');
-    const d = await r.json();
-    const bal = d.balance || 0;
-    document.getElementById('s-balance').textContent = '$' + bal.toFixed(2);
-    document.getElementById('s-balance-sub').textContent = 'live account';
-  } catch(e) {
-    document.getElementById('s-balance').textContent = '$288.47';
-  }
-}
-fetchBalance();
-setInterval(fetchBalance, 30000);
 </script>
 </body>
 </html>

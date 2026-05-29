@@ -53,7 +53,7 @@ v2.2 (2026-05-25): FLAT SIZING + LIQUID-ONLY MEASUREMENT MODE.
 
   Three changes for this measurement run:
 
-    1. FLAT SIZING. Every trade is FLAT_POSITION_USD ($25). Every entry
+    1. FLAT SIZING. Every trade is CFG.FLAT_POSITION_USD ($25). Every entry
        is the same notional risk. Wins and losses speak for themselves.
        After enough samples, bucket by score and see if hit rate actually
        rises with score. THEN sizing decisions become data-driven.
@@ -154,36 +154,54 @@ import urllib.error
 PAPER_MAX_OPEN          = 50        # LIVE: 8
 PAPER_MIN_POSITION_USD  = 5.0       # LIVE: 25.0
 PAPER_MAX_POSITION_USD  = 200.0     # LIVE: 500.0
-PAPER_TOTAL_CAPITAL     = 50_000.0  # LIVE: 10_000.0
-PAPER_MAX_DAILY_LOSS    = 5_000.0   # LIVE: 300.0
+PAPER_TOTAL_CAPITAL     = 500.0     # real account size
+PAPER_MAX_DAILY_LOSS    = 50.0      # ~10% of real balance
 
 # =============================================================================
 # v2.3 MEASUREMENT MODE — flat sizing, LIQUID-only execution
 # =============================================================================
 
-FLAT_POSITION_USD     = 25.0   # Every trade is this size. No exceptions.
-ENABLE_THIN_EXECUTION = False  # If False, THIN signals are routed but skipped
+FLAT_POSITION_USD     = 12.50   # Every trade is this size. No exceptions.
+ENABLE_THIN_EXECUTION = True
+MIN_CONTRACT_PRICE = 0.40  # If False, THIN signals are routed but skipped
 
 # =============================================================================
 # CONFIGURATION
+@dataclass
+class Signal:
+    ticker:    str
+    title:     str
+    direction: str
+    price:     float
+    composite: int
+    ofi:       int
+    days:      float
+    edge:      float
+    volume:    float = 0.0
+    volume_24h: float = 0.0
+    open_interest: float = 0.0
+    path:      str = 'SKIP'
+    kelly_size: float = 0.0
+
 # =============================================================================
 
 @dataclass
 class Config:
-    PAPER_TRADE: bool = True
+    PAPER_TRADE: bool = os.getenv("PAPER_TRADE", "false").lower() == "true"
+    FLAT_POSITION_USD: float = 12.50
 
     API_KEY:    str = os.getenv("KALSHI_API_KEY", "")
     API_SECRET: str = os.getenv("KALSHI_API_SECRET", "")
-    KALSHI_BASE: str = "https://external-api.kalshi.com/trade-api/v2"
+    KALSHI_BASE: str = "https://api.elections.kalshi.com/trade-api/v2"
 
     # Scanner is the brain — trader polls it for signals
-    SCANNER_URL: str = os.getenv("SCANNER_URL", "https://kalshi-trader-1.onrender.com")
+    SCANNER_URL: str = "http://localhost:8181"
 
     # Exit rules — v2.3: tightened from 20%/10% to 10%/5% (2:1 R/R preserved)
-    PROFIT_TARGET:   float = 0.10
-    STOP_LOSS:       float = 0.05
+    PROFIT_TARGET:   float = 0.08
+    STOP_LOSS:       float = 0.04
 
-    # Sizing — v2.3 uses FLAT_POSITION_USD; kelly fields kept for revert path
+    # Sizing — v2.3 uses CFG.FLAT_POSITION_USD; kelly fields kept for revert path
     KELLY_FRACTION:   float = 0.50
     MAX_POSITION_USD: float = PAPER_MAX_POSITION_USD
     MIN_POSITION_USD: float = PAPER_MIN_POSITION_USD
@@ -205,12 +223,12 @@ class Config:
     # =========================================================================
 
     # Universal entry gate — v2.3: opened from 3d to 14d
-    MAX_TTR_DAYS: float = 14.0
+    MAX_TTR_DAYS: float = 999.0
 
     # LIQUID path: deep markets with normal flow exits
     # v2.3: loosened from 10K / 500 to 2K / 100
-    LIQUID_VOLUME_MIN:       float = 2_000.0     # lifetime contracts traded
-    LIQUID_VOLUME_24H_MIN:   float = 100.0       # last 24hr (freshness check)
+    LIQUID_VOLUME_MIN:       float = 100.0     # lifetime contracts traded
+    LIQUID_VOLUME_24H_MIN:   float = 0.0       # last 24hr (freshness check)
     VELOCITY_DECAY_GRACE_S:  float = 30 * 60     # 30min grace after entry
     VELOCITY_DECAY_THRESHOLD: float = 0.50       # exit if v24h < 50% of entry
 
@@ -264,98 +282,35 @@ def _normalize_pem(raw: str) -> bytes:
 
 
 def _rsa_sign(method: str, path: str) -> dict:
-    """Sign a request with RSA-SHA256 using the PEM private key."""
-    ts  = str(int(time.time() * 1000))
+    ts = str(int(time.time() * 1000))
     msg = ts + method.upper() + path
-
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
-
-    if not CFG.API_KEY or not CFG.API_SECRET:
+    if not CFG.API_KEY:
         return headers
-
+    log.info('RSA DEBUG: key=%s secret_len=%d secret_has_newline=%s secret_start=%s',
+             CFG.API_KEY[:8], len(CFG.API_SECRET),
+             chr(10) in CFG.API_SECRET,
+             repr(CFG.API_SECRET[:50]))
     try:
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.backends import default_backend
-
-        pem_bytes   = _normalize_pem(CFG.API_SECRET)
-        private_key = serialization.load_pem_private_key(
-            pem_bytes, password=None, backend=default_backend()
-        )
-        signature = private_key.sign(
-            msg.encode(),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.DIGEST_LENGTH
-            ),
-            hashes.SHA256()
-        )
-        sig_b64 = base64.b64encode(signature).decode()
-
+        import base64 as _b64, os as _os
+        raw = CFG.API_SECRET
+        # Handle literal \n from Render env vars
+        raw = raw.replace("\\n", "\n").replace("\\r", "").strip()
+        # If no real newlines, use normalize
+        if "\n" not in raw:
+            raw = _normalize_pem(raw).decode()
+        pk = serialization.load_pem_private_key(raw.encode(), password=None)
+        sig = pk.sign(msg.encode(), padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.DIGEST_LENGTH), hashes.SHA256())
         headers.update({
-            "KALSHI-ACCESS-KEY":       CFG.API_KEY,
+            "KALSHI-ACCESS-KEY": CFG.API_KEY,
             "KALSHI-ACCESS-TIMESTAMP": ts,
-            "KALSHI-ACCESS-SIGNATURE": sig_b64,
+            "KALSHI-ACCESS-SIGNATURE": _b64.b64encode(sig).decode()
         })
     except Exception as e:
         log.warning("RSA signing failed: %s", e)
-
     return headers
-
-
-def _public_headers() -> dict:
-    """Headers for unauthenticated public Kalshi reads (markets endpoint)."""
-    return {"Content-Type": "application/json", "Accept": "application/json"}
-
-
-# -----------------------------------------------------------------------------
-# DATA MODELS
-# -----------------------------------------------------------------------------
-
-@dataclass
-class Signal:
-    """Mirrors what the scanner returns. We just receive these."""
-    ticker:    str
-    title:     str
-    direction: str
-    price:     float
-    composite: int
-    ofi:       int
-    days:      float
-    edge:      float
-    # v2.0: liquidity metadata for routing decisions
-    volume:        float = 0.0  # lifetime contracts traded
-    volume_24h:    float = 0.0  # last 24hr contracts traded
-    open_interest: float = 0.0
-    # Routing assignment (set by route_signal())
-    path:       str = "SKIP"    # "LIQUID" | "THIN" | "SKIP"
-    skip_reason: str = ""
-    kelly_size: float = 0.0
-    ts:        float = field(default_factory=time.time)
-
-
-@dataclass
-class Position:
-    ticker:      str
-    title:       str
-    direction:   str
-    entry_price: float
-    size_usd:    float
-    contracts:   int
-    order_id:    str
-    # v2.0: track path + entry-time volume snapshot for velocity decay
-    path:        str = "LIQUID"  # "LIQUID" | "THIN"
-    entry_volume_24h: float = 0.0
-    opened_at:   float = field(default_factory=time.time)
-    closed_at:   Optional[float] = None
-    exit_price:  Optional[float] = None
-    pnl:         float = 0.0
-    status:      str = "open"
-
-
-# -----------------------------------------------------------------------------
-# SCANNER CLIENT — pulls qualified signals from kalshi_server's /api/signals
-# -----------------------------------------------------------------------------
 
 def poll_scanner_signals() -> tuple[list[Signal], dict]:
     """
@@ -602,7 +557,7 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
                  ticker, side.upper(), contracts, price_cents, oid)
         return {"order_id": oid, "status": "paper_filled", "paper": True}
 
-    path      = "/trade-api/v2/orders"
+    path      = "/trade-api/v2/portfolio/orders"
     price_key = "yes_price" if side == "yes" else "no_price"
     body      = json.dumps({
         "ticker": ticker, "side": side, "type": "limit",
@@ -610,7 +565,7 @@ def place_order(ticker: str, side: str, contracts: int, price_cents: int) -> dic
     }).encode()
     headers = _rsa_sign("POST", path)
     req = urllib.request.Request(
-        CFG.KALSHI_BASE + "/orders", data=body, headers=headers, method="POST")
+        CFG.KALSHI_BASE + "/portfolio/orders", data=body, headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             return json.loads(r.read())
@@ -658,7 +613,7 @@ class RiskManager:
             return False, f"Max open positions ({CFG.MAX_OPEN}) reached"
         if sig.ticker in self.open:
             return False, f"Already have position in {sig.ticker}"
-        # v2.3: with FLAT_POSITION_USD=$25, this check is effectively dead
+        # v2.3: with CFG.FLAT_POSITION_USD=$25, this check is effectively dead
         # but kept as a safety net in case someone reverts FLAT and forgets
         # to restore Kelly. Min is $5 (PAPER) so $25 always passes.
         if sig.kelly_size < CFG.MIN_POSITION_USD:
@@ -899,6 +854,7 @@ def run():
 """)
 
     risk    = RiskManager()
+    reconcile_open_positions(risk)
     cycle   = 0
     capital = CFG.TOTAL_CAPITAL
 
@@ -960,13 +916,13 @@ def run():
             )
             if s.path == "LIQUID":
                 # v2.3: flat sizing
-                s.kelly_size = FLAT_POSITION_USD
+                s.kelly_size = CFG.FLAT_POSITION_USD
                 liquid_signals.append(s)
             elif s.path == "THIN":
                 thin_signals_routed += 1
                 if ENABLE_THIN_EXECUTION:
                     # Path kept intact for revert; not reached when False
-                    s.kelly_size = FLAT_POSITION_USD
+                    s.kelly_size = CFG.FLAT_POSITION_USD
                     liquid_signals.append(s)  # treated same downstream
                 else:
                     risk.record_skip("thin_path_disabled_for_experiment")
@@ -1055,6 +1011,29 @@ def run():
 # HEALTH SERVER (for Render — exposes /state, /api/trades, /api/trades/raw)
 # -----------------------------------------------------------------------------
 
+
+def reconcile_open_positions(risk):
+    if CFG.PAPER_TRADE:
+        log.info("[RECONCILE] skipping")
+        return 0
+    try:
+        rpath="/trade-api/v2/portfolio/positions"
+        headers=_rsa_sign("GET",rpath)
+        url=CFG.KALSHI_BASE.replace("/trade-api/v2","")+rpath+"?limit=100&status=open"
+        req=urllib.request.Request(url,headers=headers)
+        with urllib.request.urlopen(req,timeout=15) as r:
+            data=json.loads(r.read().decode())
+        loaded=0
+        for p2 in data.get("market_positions",[]):
+            t=p2.get("ticker","");ct=p2.get("position",0)
+            if not t or ct==0: continue
+            d="LONG" if ct>0 else "SHORT";ct=abs(ct);ap=p2.get("avg_price_per_contract",50)/100.0
+            risk.open[t]=Position(ticker=t,direction=d,entry_price=ap,contracts=ct,size_usd=ct*ap,path="LIQUID",entry_volume_24h=0)
+            loaded+=1;log.info("[RECONCILE] %s %s %d @ %.2f",d,t,ct,ap)
+        log.info("[RECONCILE] %d loaded",loaded);return loaded
+    except Exception as e:
+        log.warning("[RECONCILE] failed: %s",e);return 0
+
 if __name__ == "__main__":
     import threading
     import http.server as _hs
@@ -1077,6 +1056,22 @@ if __name__ == "__main__":
 
         def do_GET(self):
             try:
+                if self.path == "/copy_trades":
+                    import json as _j
+                    try:
+                        from copy_trade_module import load_copy_trades, copy_trade_stats
+                        _tr = load_copy_trades(100)
+                        _st = copy_trade_stats(_tr)
+                    except Exception:
+                        _tr = []
+                        _st = {}
+                    _b = _j.dumps({"trades":_tr,"stats":_st,"social":{},"flow":{}},indent=2).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type","application/json")
+                    self.send_header("Access-Control-Allow-Origin","*")
+                    self.end_headers()
+                    self.wfile.write(_b)
+                    return
                 if self.path == "/api/trades" or self.path.startswith("/api/trades?"):
                     trades = []
                     try:
@@ -1211,7 +1206,7 @@ if __name__ == "__main__":
                         "liquid_book_used_usd": liquid_used,
                         "skip_counts": dict(risk.skip_counts) if risk else {},
                         "config": {
-                            "flat_position_usd":     FLAT_POSITION_USD,
+                            "flat_position_usd":     CFG.FLAT_POSITION_USD,
                             "enable_thin_execution": ENABLE_THIN_EXECUTION,
                             "profit_target":    CFG.PROFIT_TARGET,
                             "stop_loss":        CFG.STOP_LOSS,
@@ -1233,10 +1228,65 @@ if __name__ == "__main__":
                     }
                     return self._send_json(payload)
 
+
+                if self.path == "/api/config":
+                    return self._send_json({"flat_position_usd":CFG.FLAT_POSITION_USD,"profit_target":CFG.PROFIT_TARGET,"stop_loss":CFG.STOP_LOSS,"kelly_fraction":CFG.KELLY_FRACTION,"max_open":CFG.MAX_OPEN,"max_daily_loss":CFG.MAX_DAILY_LOSS,"total_capital":CFG.TOTAL_CAPITAL,"max_ttr_days":CFG.MAX_TTR_DAYS,"liquid_volume_min":CFG.LIQUID_VOLUME_MIN,"liquid_volume_24h_min":CFG.LIQUID_VOLUME_24H_MIN,"scan_interval":CFG.SCAN_INTERVAL,"velocity_decay_threshold":CFG.VELOCITY_DECAY_THRESHOLD,"velocity_decay_grace_s":CFG.VELOCITY_DECAY_GRACE_S,"paper_trade":CFG.PAPER_TRADE})
+
+                if self.path == "/api/config/update":
+                    length=int(self.headers.get("Content-Length",0))
+                    body=json.loads(self.rfile.read(length).decode())
+                    changed=[]
+                    m={"profit_target":"PROFIT_TARGET","stop_loss":"STOP_LOSS","kelly_fraction":"KELLY_FRACTION","max_open":"MAX_OPEN","max_daily_loss":"MAX_DAILY_LOSS","total_capital":"TOTAL_CAPITAL","max_ttr_days":"MAX_TTR_DAYS","liquid_volume_min":"LIQUID_VOLUME_MIN","liquid_volume_24h_min":"LIQUID_VOLUME_24H_MIN","scan_interval":"SCAN_INTERVAL","velocity_decay_threshold":"VELOCITY_DECAY_THRESHOLD","velocity_decay_grace_s":"VELOCITY_DECAY_GRACE_S"}
+                    for k,a in m.items():
+                        if k in body:
+                            cast=int if a in ("MAX_OPEN","SCAN_INTERVAL","VELOCITY_DECAY_GRACE_S") else float
+                            setattr(CFG,a,cast(body[k]));changed.append(k)
+                    if "flat_position_usd" in body:
+                        CFG.FLAT_POSITION_USD=float(body["flat_position_usd"]);changed.append("flat_position_usd")
+                    log.info("[CONFIG] Hot-reloaded: %s",", ".join(changed))
+                    return self._send_json({"ok":True,"changed":changed})
+
+                if self.path == "/api/balance":
+                    try:
+                        import urllib.request as _ur
+                        import urllib.error as _ue
+                        _bal_path = "/trade-api/v2/portfolio/balance"
+                        _headers = _rsa_sign("GET", _bal_path)
+                        _url = CFG.KALSHI_BASE.replace("/trade-api/v2", "") + _bal_path
+                        _req = urllib.request.Request(_url, headers=_headers)
+                        with urllib.request.urlopen(_req, timeout=10) as _r:
+                            _data = json.loads(_r.read().decode())
+                        _bal = _data.get("balance", 0) / 100.0
+                        return self._send_json({"balance": _bal})
+                    except Exception as ex:
+                        return self._send_json({"balance": 0, "error": str(ex)})
+
+                from pathlib import Path as _Path
+                _HERE = _Path(__file__).parent
+                _page_map = {
+                    "/dashboard": "kalshi_dashboard.html",
+                    "/tradelog":  "trade_log.html",
+                }
+                from urllib.parse import urlparse as _up2
+                _clean_path = _up2(self.path).path.rstrip("/") or "/"
+                if _clean_path in _page_map:
+                    _fpath = _HERE / _page_map[_clean_path]
+                    if _fpath.exists():
+                        _body = _fpath.read_bytes()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/html")
+                        self.send_header("Content-Length", str(len(_body)))
+                        self.end_headers()
+                        self.wfile.write(_body)
+                        return
+                    else:
+                        self._send_json({"error": f"File not found: {_page_map[_clean_path]}"}, status=404)
+                        return
+
                 payload = {
                     "status":     "running",
                     "version":    "v2.3",
-                    "mode_note":  "measurement mode: flat $%.0f sizing, LIQUID-only execution" % FLAT_POSITION_USD,
+                    "mode_note":  "measurement mode: flat $%.0f sizing, LIQUID-only execution" % CFG.FLAT_POSITION_USD,
                     "cycle":      _shared.get("cycle", 0),
                     "trade_mode": "PAPER" if CFG.PAPER_TRADE else "LIVE",
                     "architecture": "executor with liquidity routing overlay",
@@ -1247,6 +1297,10 @@ if __name__ == "__main__":
 
             except Exception as e:
                 self._send_json({"error": str(e)}, status=500)
+
+        def do_POST(self):
+            self.command="POST"
+            return self.do_GET()
 
         def do_OPTIONS(self):
             self.send_response(204)

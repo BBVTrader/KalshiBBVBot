@@ -1,7 +1,10 @@
 #!/bin/bash
-echo "Starting Kalshi scanner on port 8181..."
-KALSHI_API_KEY="$KALSHI_API_KEY" KALSHI_API_SECRET="$KALSHI_API_SECRET" SCANNER_PORT=8181 python kalshi_server.py &
-SCANNER_PID=$!
-sleep 8
+# Start the Kalshi server and trader together
+echo "Starting Kalshi server..."
+python kalshi_server.py &
+
+# Wait a few seconds so the server is ready before the trader starts
+sleep 3
+
 echo "Starting Kalshi trader..."
-SCANNER_URL=http://localhost:8181 python kalshi_trader.py
+python kalshi_trader.py
